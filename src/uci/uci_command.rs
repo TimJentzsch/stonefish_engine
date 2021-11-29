@@ -20,6 +20,55 @@ pub enum UciPosition {
     Startpos,
 }
 
+impl UciCommand {
+    /// Try to parse the contents of a UCI position command.
+    fn try_parse_position(line: &str, pos_str: &str) -> Self {
+        let mut tokens = pos_str.split_ascii_whitespace();
+
+        if let Some(pos_str) = tokens.next() {
+            // The position to start from
+            let pos = match pos_str {
+                // The starting position can be provided directly
+                "startpos" => UciPosition::Startpos,
+                // A position in FEN notation
+                // rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+                "fen" => {
+                    let mut fen_str = "".to_owned();
+
+                    // A FEN string is composed of 6 tokens
+                    for _ in 0..6 {
+                        if let Some(fen_part) = tokens.next() {
+                            fen_str += fen_part;
+                            fen_str += " ";
+                        } else {
+                            return UciCommand::Unknown(line.to_owned());
+                        }
+                    }
+
+                    UciPosition::Fen(fen_str.trim_end().to_owned())
+                }
+                _ => return UciCommand::Unknown(line.to_owned()),
+            };
+
+            let mut moves = vec![];
+
+            // Optionally, moves to play after the given position
+            if let Some(move_token) = tokens.next() {
+                if move_token == "moves" {
+                    // Add all given moves
+                    while let Some(move_str) = tokens.next() {
+                        moves.push(move_str.to_owned());
+                    }
+                }
+            }
+
+            return UciCommand::Position(pos, moves);
+        }
+
+        return UciCommand::Unknown(line.to_owned());
+    }
+}
+
 impl From<&str> for UciCommand {
     fn from(line: &str) -> Self {
         let mut tokens = line.trim().split_whitespace();
@@ -32,47 +81,8 @@ impl From<&str> for UciCommand {
                 "quit" => UciCommand::Quit,
                 "stop" => UciCommand::Stop,
                 "position" => {
-                    if let Some(pos_str) = tokens.next() {
-                        // The position to start from
-                        let pos = match pos_str {
-                            // The starting position can be provided directly
-                            "startpos" => UciPosition::Startpos,
-                            // A position in FEN notation
-                            // rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
-                            "fen" => {
-                                let mut fen_str = "".to_owned();
-
-                                // A FEN string is composed of 6 tokens
-                                for _ in 0..6 {
-                                    if let Some(fen_part) = tokens.next() {
-                                        fen_str += fen_part;
-                                        fen_str += " ";
-                                    } else {
-                                        return UciCommand::Unknown(line.to_owned());
-                                    }
-                                }
-
-                                UciPosition::Fen(fen_str.trim_end().to_owned())
-                            }
-                            _ => return UciCommand::Unknown(line.to_owned()),
-                        };
-
-                        let mut moves = vec![];
-
-                        // Optionally, moves to play after the given position
-                        if let Some(move_token) = tokens.next() {
-                            if move_token == "moves" {
-                                // Add all given moves
-                                while let Some(move_str) = tokens.next() {
-                                    moves.push(move_str.to_owned());
-                                }
-                            }
-                        }
-
-                        return UciCommand::Position(pos, moves);
-                    }
-
-                    return UciCommand::Unknown(line.to_owned());
+                    let pos_str = tokens.as_str();
+                    UciCommand::try_parse_position(line, pos_str)
                 }
                 // Unknown command
                 _ => UciCommand::Unknown(line.to_owned()),
