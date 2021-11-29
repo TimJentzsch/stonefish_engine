@@ -1,3 +1,6 @@
+// Adapted from the Weiawaga engine, licensed GPL-2.0
+// https://github.com/Heiaha/Weiawaga/blob/493d8139f882b89380c298457267cb059d86dc2f/src/uci/uci.rs
+#[derive(Debug, PartialEq)]
 pub enum UciCommand {
     Unknown(String),
     UciNewGame,
@@ -63,5 +66,45 @@ impl From<&str> for UciCommand {
             return UciCommand::Stop;
         }
         Self::Unknown(line.to_owned())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::uci::uci_command::UciCommand;
+
+    #[test]
+    fn should_parse_uci() {
+        let actual = UciCommand::from("uci");
+        let expected = UciCommand::Uci;
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn should_parse_ucinewgame() {
+        let actual = UciCommand::from("ucinewgame");
+        let expected = UciCommand::UciNewGame;
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn should_parse_isready() {
+        let actual = UciCommand::from("isready");
+        let expected = UciCommand::IsReady;
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn should_parse_quit() {
+        let actual = UciCommand::from("quit");
+        let expected = UciCommand::Quit;
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn should_parse_stop() {
+        let actual = UciCommand::from("stop");
+        let expected = UciCommand::Stop;
+        assert_eq!(actual, expected);
     }
 }
