@@ -6,10 +6,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::{io, sync, thread};
 
-pub enum UCICommand {
+pub enum UciCommand {
     Unknown(String),
-    UCINewGame,
-    UCI,
+    UciNewGame,
+    Uci,
     IsReady,
     Position(String, Vec<String>),
     Go(String),
@@ -19,32 +19,33 @@ pub enum UCICommand {
     Option(String, String),
 }
 
-
-
-impl UCICommand {
-    fn thread_loop(thread: sync::mpsc::Receiver<UCICommand>, abort: Arc<AtomicBool>) {
+impl UciCommand {
+    fn thread_loop(thread: sync::mpsc::Receiver<UciCommand>, abort: Arc<AtomicBool>) {
         for cmd in thread {
             match cmd {
-                UCICommand::IsReady => {
+                UciCommand::IsReady => {
+                    // Always return readyok as soon as possible
                     println!("readyok");
                 }
-                UCICommand::UCINewGame => {
-                    todo!();
+                UciCommand::UciNewGame => {
+                    // TODO: Create a new game
                 }
-                UCICommand::Position(new_board, moves) => {
-                    todo!();
+                UciCommand::Position(new_board, moves) => {
+                    // TODO: Move to position
                 }
-                UCICommand::Go(time_control) => {
-                    todo!();
+                UciCommand::Go(time_control) => {
+                    // TODO: Go
                 }
-                UCICommand::Perft(depth) => {
-                    todo!();
+                UciCommand::Perft(depth) => {
+                    // TODO: Implement Perft
                 }
-                UCICommand::Option(name, value) => {
-                    todo!();
-                },
+                UciCommand::Option(name, value) => {
+                    // Ignore options for now
+                    println!("info Unknown option {}={}", name, value);
+                }
                 _ => {
                     // Ignore unknown commands
+                    println!("info Unknown command");
                 }
             }
         }
@@ -65,13 +66,13 @@ impl UCICommand {
             .unwrap();
 
         for line in lock.lines() {
-            let cmd = UCICommand::from(&*line.unwrap().to_owned());
+            let cmd = UciCommand::from(&*line.unwrap().to_owned());
             match cmd {
-                UCICommand::Quit => return,
-                UCICommand::Stop => {
+                UciCommand::Quit => return,
+                UciCommand::Stop => {
                     abort.store(true, Ordering::SeqCst);
                 }
-                UCICommand::UCI => {
+                UciCommand::Uci => {
                     println!("id name Stonefish");
                     println!("id author Tim3303");
                     println!("uciok");
@@ -84,10 +85,10 @@ impl UCICommand {
     }
 }
 
-impl From<&str> for UCICommand {
+impl From<&str> for UciCommand {
     fn from(line: &str) -> Self {
         if line.starts_with("ucinewgame") {
-            return UCICommand::UCINewGame;
+            return UciCommand::UciNewGame;
         } else if line.starts_with("setoption") {
             let mut words = line.split_whitespace();
             let mut name_parts = Vec::new();
@@ -106,13 +107,13 @@ impl From<&str> for UCICommand {
             }
             let name = name_parts.last().unwrap();
             let value = value_parts.last().unwrap_or(&"");
-            return UCICommand::Option(name.parse().unwrap(), value.parse().unwrap());
+            return UciCommand::Option(name.parse().unwrap(), value.parse().unwrap());
         } else if line.starts_with("uci") {
-            return UCICommand::UCI;
+            return UciCommand::Uci;
         } else if line.starts_with("isready") {
-            return UCICommand::IsReady;
+            return UciCommand::IsReady;
         } else if line.starts_with("go") {
-            return UCICommand::Go("".to_owned());
+            return UciCommand::Go("".to_owned());
         } else if line.starts_with("position") {
             let mut moves = Vec::new();
             if line.contains("moves") {
@@ -122,18 +123,18 @@ impl From<&str> for UCICommand {
                     }
                 }
             }
-            return UCICommand::Position("".to_owned(), moves);
+            return UciCommand::Position("".to_owned(), moves);
         } else if line.starts_with("quit") {
-            return UCICommand::Quit;
+            return UciCommand::Quit;
         } else if line.starts_with("perft") {
             let depth = line
                 .split_whitespace()
                 .nth(1)
                 .and_then(|d| d.parse().ok())
                 .unwrap_or(6);
-            return UCICommand::Perft(depth);
+            return UciCommand::Perft(depth);
         } else if line == "stop" {
-            return UCICommand::Stop;
+            return UciCommand::Stop;
         }
         Self::Unknown(line.to_owned())
     }
