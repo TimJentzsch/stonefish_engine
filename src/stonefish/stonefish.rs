@@ -1,6 +1,6 @@
 use pleco::Board;
 
-use crate::uci::uci::UciEngine;
+use crate::uci::{uci::UciEngine, uci_command::UciPosition};
 
 #[derive(Debug, Clone)]
 pub struct Stonefish {
@@ -12,7 +12,7 @@ impl Stonefish {
     /// Create a new Stonefish instance.
     pub fn new() -> Stonefish {
         Stonefish {
-            board: Board::start_pos()
+            board: Board::start_pos(),
         }
     }
 }
@@ -36,26 +36,34 @@ impl UciEngine for Stonefish {
         self.board = Board::start_pos();
     }
 
-    fn change_position(&mut self, fen_str: String, moves: Vec<String>) {
-        // Try to convert the FEN in a position
-        if let Ok(mut new_board) = Board::from_fen(fen_str.as_str()) {
-
-            // Try to apply the moves
-            for move_str in moves {
-                if !new_board.apply_uci_move(move_str.as_str()) {
-                    // The move couldn't be applied, don't change the board
-                    println!("info string '{}' is an invalid move string.", move_str);
+    fn change_position(&mut self, pos: UciPosition, moves: Vec<String>) {
+        // Try to apply the position
+        let mut new_board = match pos {
+            UciPosition::Startpos => Board::start_pos(),
+            UciPosition::Fen(fen_str) => {
+                if let Ok(parsed_board) = Board::from_fen(fen_str.as_str()) {
+                    parsed_board
+                } else {
+                    // The FEN string couldn't be parsed, don't change the board
+                    println!("info string '{}' is an invalid FEN string.", fen_str);
                     return;
                 }
             }
+        };
 
-            println!("info string change_position");
-
-            self.board = new_board;
-        } else {
-            // The FEN string couldn't be parsed, don't change the board
-            println!("info string '{}' is an invalid FEN string.", fen_str);
+        // Try to apply the moves
+        for move_str in moves {
+            if !new_board.apply_uci_move(move_str.as_str()) {
+                // The move couldn't be applied, don't change the board
+                println!("info string '{}' is an invalid move string.", move_str);
+                return;
+            }
         }
+
+        println!("info string change_position");
+
+        // Save the new board
+        self.board = new_board;
     }
 
     fn go(&mut self) {

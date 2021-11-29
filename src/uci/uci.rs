@@ -6,7 +6,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::{io, sync, thread};
 
-use super::uci_command::UciCommand;
+use super::uci_command::{UciCommand, UciPosition};
 
 pub trait UciEngine {
     /// Create a new engine instance.
@@ -28,7 +28,7 @@ pub trait UciEngine {
     fn new_game(&mut self) {}
 
     /// Move to a new position.
-    fn change_position(&mut self, _fen_str: String, _moves: Vec<String>) {}
+    fn change_position(&mut self, _pos: UciPosition, _moves: Vec<String>) {}
 
     /// Start the search.
     fn go(&mut self) {}
@@ -68,9 +68,9 @@ impl UciRunner {
                     // Create a new game
                     engine.new_game();
                 }
-                UciCommand::Position(fen_str, moves) => {
+                UciCommand::Position(pos, moves) => {
                     // Move to a new position
-                    engine.change_position(fen_str, moves);
+                    engine.change_position(pos, moves);
                 }
                 UciCommand::Go(_time_control) => {
                     // Start the search
