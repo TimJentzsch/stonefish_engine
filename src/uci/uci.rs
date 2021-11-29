@@ -6,6 +6,20 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::{io, sync, thread};
 
+pub trait UciEngine {
+    /// Create a new game.
+    fn new_game(&self) {}
+
+    /// Move to a new position.
+    fn change_position(&self, fen_str: String, moves: Vec<String>) {}
+
+    /// Start the search.
+    fn go(&self) {}
+
+    /// Set an option to the provided value.
+    fn set_option(&self, name: String, value: String) {}
+}
+
 pub enum UciCommand {
     Unknown(String),
     UciNewGame,
@@ -20,7 +34,7 @@ pub enum UciCommand {
 }
 
 impl UciCommand {
-    fn thread_loop(thread: sync::mpsc::Receiver<UciCommand>, abort: Arc<AtomicBool>) {
+    fn thread_loop(engine: &dyn UciEngine, thread: sync::mpsc::Receiver<UciCommand>, abort: Arc<AtomicBool>) {
         for cmd in thread {
             match cmd {
                 UciCommand::IsReady => {
@@ -28,13 +42,16 @@ impl UciCommand {
                     println!("readyok");
                 }
                 UciCommand::UciNewGame => {
-                    // TODO: Create a new game
+                    // Create a new game
+                    engine.new_game();
                 }
-                UciCommand::Position(new_board, moves) => {
-                    // TODO: Move to position
+                UciCommand::Position(fen_str, moves) => {
+                    // Move to a new position
+                    engine.change_position(fen_str, moves);
                 }
                 UciCommand::Go(time_control) => {
-                    // TODO: Go
+                    // Start the search
+                    engine.go();
                 }
                 UciCommand::Perft(depth) => {
                     // TODO: Implement Perft
@@ -51,7 +68,7 @@ impl UciCommand {
         }
     }
 
-    pub fn run() {
+    pub fn run(engine: &'static (dyn UciEngine + Sync)) {
         let stdin = io::stdin();
         let lock = stdin.lock();
 
@@ -62,7 +79,7 @@ impl UciCommand {
             .name("Main thread".into())
             .stack_size(8 * 1024 * 1024);
         let thread = builder
-            .spawn(move || Self::thread_loop(main_rx, thread_moved_abort))
+            .spawn(move || Self::thread_loop(engine, main_rx, thread_moved_abort))
             .unwrap();
 
         for line in lock.lines() {
