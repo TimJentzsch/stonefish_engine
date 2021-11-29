@@ -1,3 +1,8 @@
+use crate::uci::uci::UCICommand;
+
+mod uci;
+
 fn main() {
-    println!("Hello, world!");
+    // Launch UCI protocol
+    UCICommand::run();
 }
