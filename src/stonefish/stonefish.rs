@@ -31,14 +31,12 @@ impl UciEngine for Stonefish {
     }
 
     fn new_game(&mut self) {
-        println!("info new_game");
+        println!("info string new_game");
         // Reset the board
         self.board = Board::start_pos();
     }
 
     fn change_position(&mut self, fen_str: String, moves: Vec<String>) {
-        println!("info change_position");
-
         // Try to convert the FEN in a position
         if let Ok(mut new_board) = Board::from_fen(fen_str.as_str()) {
 
@@ -46,18 +44,21 @@ impl UciEngine for Stonefish {
             for move_str in moves {
                 if !new_board.apply_uci_move(move_str.as_str()) {
                     // The move couldn't be applied, don't change the board
-                    println!("info '{}' is an invalid move string.", move_str);
+                    println!("info string '{}' is an invalid move string.", move_str);
+                    return;
                 }
             }
+
+            println!("info string change_position");
 
             self.board = new_board;
         } else {
             // The FEN string couldn't be parsed, don't change the board
-            println!("info '{}' is an invalid FEN string.", fen_str);
+            println!("info string '{}' is an invalid FEN string.", fen_str);
         }
     }
 
     fn go(&mut self) {
-        println!("info go");
+        println!("info string go");
     }
 }

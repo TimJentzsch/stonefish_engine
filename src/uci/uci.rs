@@ -79,11 +79,11 @@ impl UciRunner {
                 }
                 UciCommand::Option(name, value) => {
                     // Ignore options for now
-                    println!("info Unknown option {}={}", name, value);
+                    println!("info string Unknown option {}={}", name, value);
                 }
                 _ => {
                     // Ignore unknown commands
-                    println!("info Unknown command");
+                    println!("info string Unknown command");
                 }
             }
         }
