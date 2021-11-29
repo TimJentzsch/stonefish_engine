@@ -7,39 +7,60 @@ use std::sync::Arc;
 use std::{io, sync, thread};
 
 pub trait UciEngine {
+    /// Create a new engine instance.
+    fn new() -> Self
+    where
+        Self: Sized;
+
+    /// The name of the engine.
+    fn get_name(&self) -> Option<&str> {
+        None
+    }
+
+    /// The author of the engine.
+    fn get_author(&self) -> Option<&str> {
+        None
+    }
+
     /// Create a new game.
-    fn new_game(&self) {}
+    fn new_game(&mut self) {}
 
     /// Move to a new position.
-    fn change_position(&self, fen_str: String, moves: Vec<String>) {}
+    fn change_position(&mut self, _fen_str: String, _moves: Vec<String>) {}
 
     /// Start the search.
-    fn go(&self) {}
+    fn go(&mut self) {}
 
     /// Set an option to the provided value.
-    fn set_option(&self, name: String, value: String) {}
+    fn set_option(&mut self, _name: String, _value: String) {}
 }
 
-pub enum UciCommand {
-    Unknown(String),
-    UciNewGame,
-    Uci,
-    IsReady,
-    Position(String, Vec<String>),
-    Go(String),
-    Quit,
-    Stop,
-    Perft(u8),
-    Option(String, String),
-}
+pub struct UciRunner;
 
-impl UciCommand {
-    fn thread_loop(engine: &dyn UciEngine, thread: sync::mpsc::Receiver<UciCommand>, abort: Arc<AtomicBool>) {
+impl UciRunner {
+    fn thread_loop<Engine: UciEngine>(
+        thread: sync::mpsc::Receiver<UciCommand>,
+        _abort: Arc<AtomicBool>,
+    ) {
+        // Create a new instance of the engine
+        let mut engine = Engine::new();
+
         for cmd in thread {
             match cmd {
                 UciCommand::IsReady => {
                     // Always return readyok as soon as possible
                     println!("readyok");
+                }
+                UciCommand::Uci => {
+                    // Let the GUI now that UCI is supported
+                    // Also provide basic info about the engine
+                    if let Some(name) = engine.get_name() {
+                        println!("id name {}", name);
+                    }
+                    if let Some(author) = engine.get_author() {
+                        println!("id author {}", author);
+                    }
+                    println!("uciok");
                 }
                 UciCommand::UciNewGame => {
                     // Create a new game
@@ -49,11 +70,11 @@ impl UciCommand {
                     // Move to a new position
                     engine.change_position(fen_str, moves);
                 }
-                UciCommand::Go(time_control) => {
+                UciCommand::Go(_time_control) => {
                     // Start the search
                     engine.go();
                 }
-                UciCommand::Perft(depth) => {
+                UciCommand::Perft(_depth) => {
                     // TODO: Implement Perft
                 }
                 UciCommand::Option(name, value) => {
@@ -68,18 +89,17 @@ impl UciCommand {
         }
     }
 
-    pub fn run(engine: &'static (dyn UciEngine + Sync)) {
+    pub fn run<Engine: UciEngine>() {
         let stdin = io::stdin();
         let lock = stdin.lock();
 
         let thread_moved_abort = sync::Arc::new(sync::atomic::AtomicBool::new(false));
         let abort = sync::Arc::clone(&thread_moved_abort);
         let (main_tx, main_rx) = sync::mpsc::channel();
-        let builder = thread::Builder::new()
+        thread::Builder::new()
             .name("Main thread".into())
-            .stack_size(8 * 1024 * 1024);
-        let thread = builder
-            .spawn(move || Self::thread_loop(engine, main_rx, thread_moved_abort))
+            .stack_size(8 * 1024 * 1024)
+            .spawn(move || Self::thread_loop::<Engine>(main_rx, thread_moved_abort))
             .unwrap();
 
         for line in lock.lines() {
@@ -89,17 +109,25 @@ impl UciCommand {
                 UciCommand::Stop => {
                     abort.store(true, Ordering::SeqCst);
                 }
-                UciCommand::Uci => {
-                    println!("id name Stonefish");
-                    println!("id author Tim3303");
-                    println!("uciok");
-                }
                 cmd => {
                     main_tx.send(cmd).unwrap();
                 }
             }
         }
     }
+}
+
+pub enum UciCommand {
+    Unknown(String),
+    UciNewGame,
+    Uci,
+    IsReady,
+    Position(String, Vec<String>),
+    Go(String),
+    Quit,
+    Stop,
+    Perft(u8),
+    Option(String, String),
 }
 
 impl From<&str> for UciCommand {
