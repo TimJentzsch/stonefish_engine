@@ -7,8 +7,7 @@ pub enum UciCommand {
     Stop,
     Position(UciPosition, Vec<String>),
     Go(UciGoConfig),
-    Perft(u8),
-    Option(String, String),
+    SetOption(String, Option<String>),
     Unknown(String),
 }
 
@@ -210,6 +209,55 @@ impl UciCommand {
 
         UciCommand::Go(go_config)
     }
+
+    /// Try to parse the contents of a UCI go command.
+    fn try_parse_set_option(set_option_str: &str) -> Self {
+        let mut tokens = set_option_str.split_whitespace().peekable();
+
+        // Set the default values
+        let mut name = "".to_string();
+        let mut value = None;
+
+        while let Some(option_token) = tokens.next() {
+            match option_token {
+                "name" => {
+                    let mut name_str = "".to_string();
+
+                    // Add to the name while no keyword is encountered
+                    while let Some(name_token) = tokens.peek() {
+                        if name_token != &"name" && name_token != &"value" {
+                            name_str += tokens.next().unwrap();
+                            // TODO: Preserve whitespace between name tokens
+                            name_str += " ";
+                        } else {
+                            break;
+                        }
+                    }
+
+                    name = name_str.trim_end().to_string();
+                }
+                "value" => {
+                    let mut value_str = "".to_string();
+
+                    // Add to the value while no keyword is encountered
+                    while let Some(value_token) = tokens.peek() {
+                        if value_token != &"name" && value_token != &"value" {
+                            value_str += tokens.next().unwrap();
+                            // TODO: Preserve whitespace between value tokens
+                            value_str += " ";
+                        } else {
+                            break;
+                        }
+                    }
+
+                    value = Some(value_str.trim_end().to_string());
+                }
+                _ => (),
+            }
+        }
+
+        UciCommand::SetOption(name, value)
+    }
 }
 
 impl From<&str> for UciCommand {
@@ -230,6 +278,10 @@ impl From<&str> for UciCommand {
                 "go" => {
                     let go_str = tokens.as_str();
                     UciCommand::try_parse_go(go_str)
+                }
+                "setoption" => {
+                    let set_option_str = tokens.as_str();
+                    UciCommand::try_parse_set_option(set_option_str)
                 }
                 // Unknown command
                 _ => UciCommand::Unknown(line.to_owned()),
@@ -362,6 +414,20 @@ mod tests {
             move_time_ms: Some(10000),
             infinite: true,
         });
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn should_parse_set_option_no_value() {
+        let actual = UciCommand::from("setoption name Clear Hash");
+        let expected = UciCommand::SetOption("Clear Hash".to_string(), None);
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn should_parse_set_option_with_value() {
+        let actual = UciCommand::from("setoption name Nullmove value true");
+        let expected = UciCommand::SetOption("Nullmove".to_string(), Some("true".to_string()));
         assert_eq!(actual, expected);
     }
 

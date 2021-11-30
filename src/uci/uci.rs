@@ -30,7 +30,7 @@ pub trait UciEngine {
     fn go(&mut self) {}
 
     /// Set an option to the provided value.
-    fn set_option(&mut self, _name: String, _value: String) {}
+    fn set_option(&mut self, _name: String, _value: Option<String>) {}
 }
 
 pub struct UciRunner;
@@ -69,17 +69,15 @@ impl UciRunner {
                     // Start the search
                     engine.go();
                 }
-                UciCommand::Perft(_depth) => {
-                    // TODO: Implement Perft
+                UciCommand::SetOption(name, value) => {
+                    // Set an option value
+                    engine.set_option(name, value);
                 }
-                UciCommand::Option(name, value) => {
-                    // Ignore options for now
-                    println!("info string Unknown option {}={}", name, value);
-                }
-                _ => {
+                UciCommand::Unknown(command_str) => {
                     // Ignore unknown commands
-                    println!("info string Unknown command");
+                    println!("info string Unknown command '{}'", command_str);
                 }
+                _ => (),
             }
         }
     }
