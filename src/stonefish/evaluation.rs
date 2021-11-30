@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use pleco::{Board, Player};
+use pleco::{Player};
 
 pub enum Evaluation {
     /// The evaluation of the given position in centipawns.
@@ -65,11 +65,6 @@ impl PartialEq for Evaluation {
             _ => false,
         }
     }
-}
-
-/// Evaluate the given position.
-pub fn evaluate(board: Board) -> Evaluation {
-    Evaluation::Eval(0)
 }
 
 #[cfg(test)]
