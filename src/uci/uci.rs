@@ -1,8 +1,12 @@
 //! Implementation of the Universal Chess Interface (UCI).
 use std::io::BufRead;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::{io, sync, thread};
 
-use super::uci_command::{UciCommand, UciPosition};
+use super::uci_command::{UciCommand, UciGoConfig, UciPosition};
+
+pub type StopFlag = Arc<AtomicBool>;
 
 pub trait UciEngine {
     /// Create a new engine instance.
@@ -33,7 +37,7 @@ pub trait UciEngine {
     fn change_position(&mut self, _pos: UciPosition, _moves: Vec<String>) {}
 
     /// Start the search.
-    fn go(&mut self) {}
+    fn go(&mut self, _go_config: UciGoConfig, _stop_flag: StopFlag) {}
 
     /// Stop calculating as soon as possible.
     fn stop(&mut self) {}
@@ -48,7 +52,10 @@ pub trait UciEngine {
 pub struct UciRunner;
 
 impl UciRunner {
-    fn engine_loop<Engine: UciEngine>(thread: sync::mpsc::Receiver<UciCommand>) {
+    fn engine_loop<Engine: UciEngine>(
+        thread: sync::mpsc::Receiver<UciCommand>,
+        stop_flag: StopFlag,
+    ) {
         // Create a new instance of the engine
         let mut engine = Engine::new();
 
@@ -76,7 +83,7 @@ impl UciRunner {
                 // Move to a new position
                 UciCommand::Position(pos, moves) => engine.change_position(pos, moves),
                 // Start the search
-                UciCommand::Go(_time_control) => engine.go(),
+                UciCommand::Go(go_config) => engine.go(go_config, stop_flag.clone()),
                 // Stop the search as soon as possible
                 UciCommand::Stop => engine.stop(),
                 // The user has played the expected move
@@ -95,10 +102,15 @@ impl UciRunner {
         let lock = stdin.lock();
 
         let (main_tx, main_rx) = sync::mpsc::channel();
+
+        // A flag to indicate that the search should be stopped as soon as possible
+        let stop_flag: StopFlag = Arc::new(AtomicBool::new(false));
+        let thread_stop_flag = stop_flag.clone();
+
         thread::Builder::new()
             .name("Engine thread".into())
             .stack_size(8 * 1024 * 1024)
-            .spawn(move || Self::engine_loop::<Engine>(main_rx))
+            .spawn(move || Self::engine_loop::<Engine>(main_rx, thread_stop_flag))
             .unwrap();
 
         // Wait for new commands. Every command is a new line
@@ -109,6 +121,19 @@ impl UciRunner {
                 match cmd {
                     // Quit the program
                     UciCommand::Quit => return,
+                    // Stop the search as soon as possible
+                    UciCommand::Stop => {
+                        // Set the stop flag so that calculations can be stopped
+                        stop_flag.store(true, Ordering::SeqCst);
+                        // Send the stop command
+                        main_tx.send(cmd).unwrap();
+                    }
+                    UciCommand::Go(_) => {
+                        // Unset the stop flag so that calculations can be made
+                        stop_flag.store(false, Ordering::SeqCst);
+                        // Send the go command
+                        main_tx.send(cmd).unwrap();
+                    }
                     // Propagate commands to the engine
                     cmd => {
                         main_tx.send(cmd).unwrap();

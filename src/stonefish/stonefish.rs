@@ -1,6 +1,9 @@
 use pleco::Board;
 
-use crate::uci::{uci::UciEngine, uci_command::UciPosition};
+use crate::uci::{
+    uci::{StopFlag, UciEngine},
+    uci_command::{UciGoConfig, UciPosition},
+};
 
 #[derive(Debug, Clone)]
 pub struct Stonefish {
@@ -60,13 +63,13 @@ impl UciEngine for Stonefish {
             }
         }
 
-        println!("info string change_position");
+        println!("info string Changed position to {}", new_board.fen());
 
         // Save the new board
         self.board = new_board;
     }
 
-    fn go(&mut self) {
+    fn go(&mut self, _go_config: UciGoConfig, _stop_flag: StopFlag) {
         println!("info string go");
     }
 }
