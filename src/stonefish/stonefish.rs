@@ -71,5 +71,11 @@ impl UciEngine for Stonefish {
 
     fn go(&mut self, _go_config: UciGoConfig, _stop_flag: StopFlag) {
         println!("info string go");
+
+        let moves = self.board.generate_moves();
+        if let Some(best_move) = moves.iter().next() {
+            println!("info pv {} score cp 0", best_move.stringify());
+            println!("bestmove {}", best_move.stringify());
+        }
     }
 }
