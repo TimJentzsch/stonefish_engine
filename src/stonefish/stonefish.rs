@@ -1,9 +1,9 @@
 use pleco::Board;
 
-use crate::uci::{
+use crate::{uci::{
     uci::{StopFlag, UciEngine},
     uci_command::{UciGoConfig, UciPosition},
-};
+}};
 
 #[derive(Debug, Clone)]
 pub struct Stonefish {
@@ -73,6 +73,14 @@ impl UciEngine for Stonefish {
         println!("info string go");
 
         let moves = self.board.generate_moves();
+
+        // Apply every possible move to a new board
+        let move_boards: Vec<Board> = moves.iter().map(| mv | {
+            let mut new_board = self.board.clone();
+            new_board.apply_move(*mv);
+            new_board
+        }).collect();
+
         if let Some(best_move) = moves.iter().next() {
             println!("info pv {} score cp 0", best_move.stringify());
             println!("bestmove {}", best_move.stringify());
