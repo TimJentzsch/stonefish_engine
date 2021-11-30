@@ -1,11 +1,14 @@
-use pleco::Board;
+use pleco::{BitMove, Board};
 
-use crate::uci::{
-    uci::{StopFlag, UciEngine},
-    uci_command::{UciGoConfig, UciPosition},
+use crate::{
+    stonefish::evaluation::Evaluation,
+    uci::{
+        uci::{StopFlag, UciEngine},
+        uci_command::{UciGoConfig, UciPosition},
+    },
 };
 
-use super::{evaluatable::Evaluatable};
+use super::evaluatable::Evaluatable;
 
 #[derive(Debug, Clone)]
 pub struct Stonefish {
@@ -77,20 +80,40 @@ impl UciEngine for Stonefish {
         let moves = self.board.generate_moves();
 
         // Apply every possible move to a new board
-        let mut move_boards: Vec<Board> = moves
+        let mut move_boards: Vec<(&BitMove, Board)> = moves
             .iter()
             .map(|mv| {
                 let mut new_board = self.board.clone();
                 new_board.apply_move(*mv);
-                new_board
+                (mv, new_board)
             })
             .collect();
 
-        move_boards.sort_by_key(|board| board.evaluate());
+        move_boards.sort_by_key(|(_, board)| board.evaluate());
 
-        if let Some(best_move) = moves.iter().next() {
-            println!("info pv {} score cp 0", best_move.stringify());
-            println!("bestmove {}", best_move.stringify());
+        let best_move = match self.board.turn() {
+            pleco::Player::White => move_boards.last(),
+            pleco::Player::Black => move_boards.first(),
+        };
+
+        if let Some((mv, board)) = best_move {
+            // Calculate the score after the move was played, in centipawns
+            let score = match board.evaluate() {
+                Evaluation::Eval(eval) => eval * 100,
+                Evaluation::Checkmate(_, player) => match player {
+                    pleco::Player::White => 100000,
+                    pleco::Player::Black => -100000,
+                },
+            };
+
+            // Convert to the score from the engine's point of view
+            let cp = match board.turn().other_player() {
+                pleco::Player::White => score,
+                pleco::Player::Black => -score,
+            };
+
+            println!("info pv {} score cp {}", mv.stringify(), cp);
+            println!("bestmove {}", mv.stringify());
         }
     }
 }

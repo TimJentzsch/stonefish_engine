@@ -1,6 +1,4 @@
-use std::cmp::Ordering;
-
-use pleco::Board;
+use pleco::{Board, PieceType, Player};
 
 use super::evaluation::Evaluation;
 
@@ -12,32 +10,19 @@ pub trait Evaluatable {
 }
 
 impl Evaluatable for Board {
-    /// Evaluate the given position.
+    /// Evaluate the given position directly.
     fn evaluate(&self) -> Evaluation {
-        // TODO: Properly evaluate the position
-        Evaluation::Eval(0)
-    }
-}
+        if self.checkmate() {
+            // The other player has won
+            Evaluation::Checkmate(0, self.turn().other_player())
+        } else {
+            // A better position for white is a positive value
+            let white_eval = self.non_pawn_material(Player::White)
+                + self.count_piece(Player::White, PieceType::P) as i32;
+            let black_eval = self.non_pawn_material(Player::Black)
+                + self.count_piece(Player::Black, PieceType::P) as i32;
 
-impl Ord for dyn Evaluatable {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.evaluate().cmp(&other.evaluate())
-    }
-}
-
-impl PartialOrd for dyn Evaluatable {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Eq for dyn Evaluatable {}
-
-impl PartialEq for dyn Evaluatable {
-    fn eq(&self, other: &Self) -> bool {
-        match self.cmp(other) {
-            Ordering::Equal => true,
-            _ => false,
+            Evaluation::Eval(white_eval - black_eval)
         }
     }
 }
