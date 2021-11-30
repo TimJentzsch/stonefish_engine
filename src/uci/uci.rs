@@ -1,9 +1,5 @@
 //! Implementation of the Universal Chess Interface (UCI).
-// Adapted from the Weiawaga engine, licensed GPL-2.0
-// https://github.com/Heiaha/Weiawaga/blob/493d8139f882b89380c298457267cb059d86dc2f/src/uci/uci.rs
 use std::io::BufRead;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
 use std::{io, sync, thread};
 
 use super::uci_command::{UciCommand, UciPosition};
@@ -40,10 +36,7 @@ pub trait UciEngine {
 pub struct UciRunner;
 
 impl UciRunner {
-    fn thread_loop<Engine: UciEngine>(
-        thread: sync::mpsc::Receiver<UciCommand>,
-        _abort: Arc<AtomicBool>,
-    ) {
+    fn engine_loop<Engine: UciEngine>(thread: sync::mpsc::Receiver<UciCommand>) {
         // Create a new instance of the engine
         let mut engine = Engine::new();
 
@@ -95,24 +88,25 @@ impl UciRunner {
         let stdin = io::stdin();
         let lock = stdin.lock();
 
-        let thread_moved_abort = sync::Arc::new(sync::atomic::AtomicBool::new(false));
-        let abort = sync::Arc::clone(&thread_moved_abort);
         let (main_tx, main_rx) = sync::mpsc::channel();
         thread::Builder::new()
-            .name("Main thread".into())
+            .name("Engine thread".into())
             .stack_size(8 * 1024 * 1024)
-            .spawn(move || Self::thread_loop::<Engine>(main_rx, thread_moved_abort))
+            .spawn(move || Self::engine_loop::<Engine>(main_rx))
             .unwrap();
 
+        // Wait for new commands. Every command is a new line
         for line in lock.lines() {
-            let cmd = UciCommand::from(&*line.unwrap().to_owned());
-            match cmd {
-                UciCommand::Quit => return,
-                UciCommand::Stop => {
-                    abort.store(true, Ordering::SeqCst);
-                }
-                cmd => {
-                    main_tx.send(cmd).unwrap();
+            if let Ok(line_str) = line {
+                // Parse the UCI command
+                let cmd = UciCommand::from(line_str.as_str());
+                match cmd {
+                    // Quit the program
+                    UciCommand::Quit => return,
+                    // Propagate commands to the engine
+                    cmd => {
+                        main_tx.send(cmd).unwrap();
+                    }
                 }
             }
         }

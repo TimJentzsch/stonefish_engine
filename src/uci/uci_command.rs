@@ -1,5 +1,3 @@
-// Adapted from the Weiawaga engine, licensed GPL-2.0
-// https://github.com/Heiaha/Weiawaga/blob/493d8139f882b89380c298457267cb059d86dc2f/src/uci/uci.rs
 #[derive(Debug, PartialEq)]
 pub enum UciCommand {
     Uci,
