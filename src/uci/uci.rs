@@ -23,6 +23,9 @@ pub trait UciEngine {
     /// Set debugging mode on or off.
     fn set_debug(&mut self, _debug: bool) {}
 
+    /// Set an option to the provided value.
+    fn set_option(&mut self, _name: String, _value: Option<String>) {}
+
     /// Create a new game.
     fn new_game(&mut self) {}
 
@@ -32,8 +35,14 @@ pub trait UciEngine {
     /// Start the search.
     fn go(&mut self) {}
 
-    /// Set an option to the provided value.
-    fn set_option(&mut self, _name: String, _value: Option<String>) {}
+    /// Stop calculating as soon as possible.
+    fn stop(&mut self) {}
+
+    /// The user has played the expected move.
+    ///
+    /// This will be sent if the engine was told to ponder on the same move the user has played.
+    /// The engine should continue searching but switch from pondering to normal search.
+    fn ponder_hit(&mut self) {}
 }
 
 pub struct UciRunner;
@@ -56,28 +65,24 @@ impl UciRunner {
                     }
                     println!("uciok");
                 }
-                UciCommand::IsReady => {
-                    // Always return readyok as soon as possible
-                    println!("readyok");
-                }
-                UciCommand::UciNewGame => {
-                    // Create a new game
-                    engine.new_game();
-                }
-                UciCommand::Position(pos, moves) => {
-                    // Move to a new position
-                    engine.change_position(pos, moves);
-                }
-                UciCommand::Go(_time_control) => {
-                    // Start the search
-                    engine.go();
-                }
-                UciCommand::SetOption(name, value) => {
-                    // Set an option value
-                    engine.set_option(name, value);
-                }
+                // Set debug mode
+                UciCommand::Debug(debug) => engine.set_debug(debug),
+                // Always return readyok as soon as possible
+                UciCommand::IsReady => println!("readyok"),
+                // Set an option value
+                UciCommand::SetOption(name, value) => engine.set_option(name, value),
+                // Create a new game
+                UciCommand::UciNewGame => engine.new_game(),
+                // Move to a new position
+                UciCommand::Position(pos, moves) => engine.change_position(pos, moves),
+                // Start the search
+                UciCommand::Go(_time_control) => engine.go(),
+                // Stop the search as soon as possible
+                UciCommand::Stop => engine.stop(),
+                // The user has played the expected move
+                UciCommand::Ponderhit => engine.ponder_hit(),
+                // Ignore unknown commands
                 UciCommand::Unknown(command_str) => {
-                    // Ignore unknown commands
                     println!("info string Unknown command '{}'", command_str);
                 }
                 _ => (),

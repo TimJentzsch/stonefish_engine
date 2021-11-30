@@ -8,6 +8,7 @@ pub enum UciCommand {
     Position(UciPosition, Vec<String>),
     Go(UciGoConfig),
     Stop,
+    Ponderhit,
     Quit,
     Unknown(String),
 }
@@ -305,6 +306,7 @@ impl From<&str> for UciCommand {
                     UciCommand::try_parse_go(go_str)
                 }
                 "stop" => UciCommand::Stop,
+                "ponderhit" => UciCommand::Ponderhit,
                 "quit" => UciCommand::Quit,
                 // Unknown command
                 _ => UciCommand::Unknown(line.to_owned()),
