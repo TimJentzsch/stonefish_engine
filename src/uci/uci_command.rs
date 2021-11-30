@@ -1,13 +1,14 @@
 #[derive(Debug, PartialEq)]
 pub enum UciCommand {
     Uci,
-    UciNewGame,
+    Debug(bool),
     IsReady,
-    Quit,
-    Stop,
+    SetOption(String, Option<String>),
+    UciNewGame,
     Position(UciPosition, Vec<String>),
     Go(UciGoConfig),
-    SetOption(String, Option<String>),
+    Stop,
+    Quit,
     Unknown(String),
 }
 
@@ -258,6 +259,24 @@ impl UciCommand {
 
         UciCommand::SetOption(name, value)
     }
+
+    /// Try to parse the contents of a UCI go command.
+    fn try_parse_debug(debug_str: &str) -> Self {
+        let mut tokens = debug_str.split_whitespace();
+
+        // Set the default values
+        let mut debug = false;
+
+        while let Some(option_token) = tokens.next() {
+            match option_token {
+                "on" => debug = true,
+                "off" => debug = false,
+                _ => (),
+            }
+        }
+
+        UciCommand::Debug(debug)
+    }
 }
 
 impl From<&str> for UciCommand {
@@ -267,10 +286,16 @@ impl From<&str> for UciCommand {
         return if let Some(cmd_token) = tokens.next() {
             match cmd_token {
                 "uci" => UciCommand::Uci,
-                "ucinewgame" => UciCommand::UciNewGame,
+                "debug" => {
+                    let debug_str = tokens.as_str();
+                    UciCommand::try_parse_debug(debug_str)
+                }
                 "isready" => UciCommand::IsReady,
-                "quit" => UciCommand::Quit,
-                "stop" => UciCommand::Stop,
+                "setoption" => {
+                    let set_option_str = tokens.as_str();
+                    UciCommand::try_parse_set_option(set_option_str)
+                }
+                "ucinewgame" => UciCommand::UciNewGame,
                 "position" => {
                     let pos_str = tokens.as_str();
                     UciCommand::try_parse_position(line, pos_str)
@@ -279,10 +304,8 @@ impl From<&str> for UciCommand {
                     let go_str = tokens.as_str();
                     UciCommand::try_parse_go(go_str)
                 }
-                "setoption" => {
-                    let set_option_str = tokens.as_str();
-                    UciCommand::try_parse_set_option(set_option_str)
-                }
+                "stop" => UciCommand::Stop,
+                "quit" => UciCommand::Quit,
                 // Unknown command
                 _ => UciCommand::Unknown(line.to_owned()),
             }
@@ -428,6 +451,20 @@ mod tests {
     fn should_parse_set_option_with_value() {
         let actual = UciCommand::from("setoption name Nullmove value true");
         let expected = UciCommand::SetOption("Nullmove".to_string(), Some("true".to_string()));
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn should_parse_debug_on() {
+        let actual = UciCommand::from("debug on");
+        let expected = UciCommand::Debug(true);
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn should_parse_debug_off() {
+        let actual = UciCommand::from("debug off");
+        let expected = UciCommand::Debug(false);
         assert_eq!(actual, expected);
     }
 

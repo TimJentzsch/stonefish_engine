@@ -20,6 +20,9 @@ pub trait UciEngine {
         None
     }
 
+    /// Set debugging mode on or off.
+    fn set_debug(&mut self, _debug: bool) {}
+
     /// Create a new game.
     fn new_game(&mut self) {}
 
@@ -42,10 +45,6 @@ impl UciRunner {
 
         for cmd in thread {
             match cmd {
-                UciCommand::IsReady => {
-                    // Always return readyok as soon as possible
-                    println!("readyok");
-                }
                 UciCommand::Uci => {
                     // Let the GUI now that UCI is supported
                     // Also provide basic info about the engine
@@ -56,6 +55,10 @@ impl UciRunner {
                         println!("id author {}", author);
                     }
                     println!("uciok");
+                }
+                UciCommand::IsReady => {
+                    // Always return readyok as soon as possible
+                    println!("readyok");
                 }
                 UciCommand::UciNewGame => {
                     // Create a new game
