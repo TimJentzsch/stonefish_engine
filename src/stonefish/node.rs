@@ -16,7 +16,7 @@ pub struct Node {
 
 impl Node {
     /// Create a new node with the heuristic evaluation.
-    fn new(state: Board, player: Player) -> Node {
+    pub fn new(state: Board, player: Player) -> Node {
         let eval = state.evaluate(player);
 
         Node {
@@ -29,7 +29,7 @@ impl Node {
     /// Expands this node.
     ///
     /// This will generate all children of this node.
-    fn expand(&mut self, player: Player) {
+    pub fn expand(&mut self, player: Player) -> &mut Self {
         let mut children: Vec<Node> = self
             .state
             // Generate all possible moves
@@ -48,6 +48,8 @@ impl Node {
 
         children.sort();
         self.children = Some(children);
+        
+        self
     }
 }
 

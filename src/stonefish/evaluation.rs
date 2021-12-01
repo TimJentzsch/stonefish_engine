@@ -8,10 +8,20 @@ pub enum Evaluation {
     ///
     /// Negative numbers are an advantage for the opponent, positive numbers an advantage for the current player.
     Material(i32),
-    /// The current player can give checkmate in the given number of moves.
+    /// The current player can give checkmate in the given number of plies.
     PlayerCheckmate(usize),
-    /// The opponent can give checkmate in the given number of moves.
+    /// The opponent can give checkmate in the given number of plies.
     OpponentCheckmate(usize),
+}
+
+impl Evaluation {
+    pub fn for_other_player(&self) -> Self {
+        match self {
+            Evaluation::Material(mat) => Evaluation::Material(-mat),
+            Evaluation::PlayerCheckmate(plies) => Evaluation::OpponentCheckmate(plies + 1),
+            Evaluation::OpponentCheckmate(plies) => Evaluation::PlayerCheckmate(plies + 1),
+        }
+    }
 }
 
 impl Ord for Evaluation {

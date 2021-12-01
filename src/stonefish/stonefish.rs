@@ -1,14 +1,12 @@
-use pleco::{BitMove, Board};
+use pleco::Board;
 
 use crate::{
-    stonefish::evaluation::Evaluation,
+    stonefish::{evaluation::Evaluation, node::Node},
     uci::{
         uci::{StopFlag, UciEngine},
         uci_command::{UciGoConfig, UciPosition},
     },
 };
-
-use super::evaluatable::Evaluatable;
 
 #[derive(Debug, Clone)]
 pub struct Stonefish {
@@ -78,29 +76,17 @@ impl UciEngine for Stonefish {
         println!("info string go");
 
         let engine = self.board.turn();
-        let opponent = engine.other_player();
 
-        let moves = self.board.generate_moves();
+        let mut root = Node::new(self.board.clone(), engine);
+        root.expand(engine);
 
-        // Apply every possible move to a new board
-        let mut move_boards: Vec<(&BitMove, Board)> = moves
-            .iter()
-            .map(|mv| {
-                let mut new_board = self.board.clone();
-                new_board.apply_move(*mv);
-                (mv, new_board)
-            })
-            .collect();
-
-        // Sort the moves, good moves for the engine are first
-        move_boards.sort_by_key(|(_, board)| board.evaluate(opponent));
-
-        if let Some((mv, board)) = move_boards.first() {
+        if let Some(node) = root.children.unwrap().first() {
+            let mv = node.state.last_move().unwrap();
             // The current score evaluation from the engine's point of view
-            let score = match board.evaluate(engine) {
+            let score = match node.evaluation.for_other_player() {
                 Evaluation::Material(cp) => format!("cp {}", cp),
-                Evaluation::PlayerCheckmate(moves) => format!("mate {}", moves + 1),
-                Evaluation::OpponentCheckmate(moves) => format!("mate {}", -(moves as i32) - 1),
+                Evaluation::PlayerCheckmate(moves) => format!("mate {}", moves),
+                Evaluation::OpponentCheckmate(moves) => format!("mate {}", -(moves as i32)),
             };
 
             println!("info pv {} score {}", mv.stringify(), score);
