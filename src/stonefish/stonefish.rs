@@ -78,6 +78,7 @@ impl UciEngine for Stonefish {
         println!("info string go");
 
         let engine = self.board.turn();
+        let opponent = engine.other_player();
 
         let moves = self.board.generate_moves();
 
@@ -92,7 +93,7 @@ impl UciEngine for Stonefish {
             .collect();
 
         // Sort the moves, good moves for the engine are first
-        move_boards.sort_by_key(|(_, board)| board.evaluate(engine));
+        move_boards.sort_by_key(|(_, board)| board.evaluate(opponent));
 
         if let Some((mv, board)) = move_boards.first() {
             // The current score evaluation from the engine's point of view

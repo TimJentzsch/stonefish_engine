@@ -30,7 +30,7 @@ impl Node {
     ///
     /// This will generate all children of this node.
     fn expand(&mut self, player: Player) {
-        let children: Vec<Node> = self
+        let mut children: Vec<Node> = self
             .state
             // Generate all possible moves
             .generate_moves()
@@ -46,6 +46,7 @@ impl Node {
             })
             .collect();
 
+        children.sort();
         self.children = Some(children);
     }
 }

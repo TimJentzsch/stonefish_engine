@@ -2,11 +2,11 @@ use std::cmp::Ordering;
 
 /// The evaluation of a given position.
 ///
-/// Smaller values mean an advantage for the current player, bigger values an advantage for the opponent.
+/// Smaller values mean an advantage for the opponent, bigger values an advantage for the current player.
 pub enum Evaluation {
-    /// A material evaluation in centipawns
+    /// A material evaluation in centipawns.
     ///
-    /// Negative numbers are an advantage for the engine, positive numbers an advantage for the opponent.
+    /// Negative numbers are an advantage for the opponent, positive numbers an advantage for the current player.
     Material(i32),
     /// The current player can give checkmate in the given number of moves.
     PlayerCheckmate(usize),
@@ -15,29 +15,29 @@ pub enum Evaluation {
 }
 
 impl Ord for Evaluation {
-    /// Good evaluations for the current player are smaller.
+    /// Good evaluations for the current player are bigger.
     fn cmp(&self, other: &Self) -> Ordering {
         match self {
             Evaluation::Material(mat_a) => match other {
-                // Prefer negative material score (advantage for the player)
+                // Prefer positive material score (advantage for the player)
                 Evaluation::Material(mat_b) => mat_a.cmp(mat_b),
-                Evaluation::PlayerCheckmate(_) => Ordering::Greater,
-                Evaluation::OpponentCheckmate(_) => Ordering::Less,
+                Evaluation::PlayerCheckmate(_) => Ordering::Less,
+                Evaluation::OpponentCheckmate(_) => Ordering::Greater,
             },
             Evaluation::PlayerCheckmate(moves_a) => {
                 match other {
                     // It's better for the player to mate in less moves
-                    Evaluation::PlayerCheckmate(moves_b) => moves_a.cmp(moves_b),
+                    Evaluation::PlayerCheckmate(moves_b) => moves_b.cmp(moves_a),
                     // Mating the opponent is better than everything else
-                    _ => Ordering::Less,
+                    _ => Ordering::Greater,
                 }
             }
             Evaluation::OpponentCheckmate(moves_a) => {
                 match other {
                     // It's better for the player if the opponent needs more moves for mate
-                    Evaluation::OpponentCheckmate(moves_b) => moves_b.cmp(moves_a),
+                    Evaluation::OpponentCheckmate(moves_b) => moves_a.cmp(moves_b),
                     // Everything is better than getting mated by the opponent
-                    _ => Ordering::Greater,
+                    _ => Ordering::Less,
                 }
             }
         }
@@ -69,11 +69,11 @@ mod tests {
 
     #[test]
     fn should_compare_material_values() {
-        let good_eval = Evaluation::Material(-6);
-        let bad_eval = Evaluation::Material(6);
+        let bad_eval = Evaluation::Material(-6);
+        let good_eval = Evaluation::Material(6);
 
-        assert_eq!(good_eval.cmp(&bad_eval), Ordering::Less);
-        assert_eq!(bad_eval.cmp(&good_eval), Ordering::Greater);
+        assert_eq!(good_eval.cmp(&bad_eval), Ordering::Greater);
+        assert_eq!(bad_eval.cmp(&good_eval), Ordering::Less);
     }
 
     #[test]
@@ -81,8 +81,8 @@ mod tests {
         let player_checkmate = Evaluation::PlayerCheckmate(3);
         let opponent_checkmate = Evaluation::OpponentCheckmate(3);
 
-        assert_eq!(player_checkmate.cmp(&opponent_checkmate), Ordering::Less);
-        assert_eq!(opponent_checkmate.cmp(&player_checkmate), Ordering::Greater);
+        assert_eq!(player_checkmate.cmp(&opponent_checkmate), Ordering::Greater);
+        assert_eq!(opponent_checkmate.cmp(&player_checkmate), Ordering::Less);
     }
 
     #[test]
@@ -90,8 +90,8 @@ mod tests {
         let fast_checkmate = Evaluation::PlayerCheckmate(3);
         let slow_checkmate = Evaluation::PlayerCheckmate(6);
 
-        assert_eq!(fast_checkmate.cmp(&slow_checkmate), Ordering::Less);
-        assert_eq!(slow_checkmate.cmp(&fast_checkmate), Ordering::Greater);
+        assert_eq!(fast_checkmate.cmp(&slow_checkmate), Ordering::Greater);
+        assert_eq!(slow_checkmate.cmp(&fast_checkmate), Ordering::Less);
     }
 
     #[test]
@@ -99,8 +99,8 @@ mod tests {
         let fast_checkmate = Evaluation::OpponentCheckmate(3);
         let slow_checkmate = Evaluation::OpponentCheckmate(6);
 
-        assert_eq!(fast_checkmate.cmp(&slow_checkmate), Ordering::Greater);
-        assert_eq!(slow_checkmate.cmp(&fast_checkmate), Ordering::Less);
+        assert_eq!(fast_checkmate.cmp(&slow_checkmate), Ordering::Less);
+        assert_eq!(slow_checkmate.cmp(&fast_checkmate), Ordering::Greater);
     }
 
     #[test]
@@ -108,8 +108,8 @@ mod tests {
         let checkmate = Evaluation::PlayerCheckmate(10);
         let eval = Evaluation::Material(100);
 
-        assert_eq!(checkmate.cmp(&eval), Ordering::Less);
-        assert_eq!(eval.cmp(&checkmate), Ordering::Greater);
+        assert_eq!(checkmate.cmp(&eval), Ordering::Greater);
+        assert_eq!(eval.cmp(&checkmate), Ordering::Less);
     }
 
     #[test]
@@ -117,7 +117,7 @@ mod tests {
         let checkmate = Evaluation::OpponentCheckmate(10);
         let eval = Evaluation::Material(100);
 
-        assert_eq!(eval.cmp(&checkmate), Ordering::Less);
-        assert_eq!(checkmate.cmp(&eval), Ordering::Greater);
+        assert_eq!(eval.cmp(&checkmate), Ordering::Greater);
+        assert_eq!(checkmate.cmp(&eval), Ordering::Less);
     }
 }
