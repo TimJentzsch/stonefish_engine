@@ -1,4 +1,4 @@
-use pleco::{Board, Player};
+use pleco::Board;
 
 use super::{evaluatable::Evaluatable, evaluation::Evaluation};
 
@@ -16,8 +16,8 @@ pub struct Node {
 
 impl Node {
     /// Create a new node with the heuristic evaluation.
-    pub fn new(state: Board, player: Player) -> Node {
-        let eval = state.evaluate(player);
+    pub fn new(state: Board) -> Node {
+        let eval = state.evaluate();
 
         Node {
             state: state,
@@ -29,7 +29,7 @@ impl Node {
     /// Expands this node.
     ///
     /// This will generate all children of this node.
-    pub fn expand(&mut self, player: Player) -> &mut Self {
+    pub fn expand(&mut self) -> &mut Self {
         let mut children: Vec<Node> = self
             .state
             // Generate all possible moves
@@ -42,13 +42,13 @@ impl Node {
                 new_state.apply_move(*mv);
                 // Create a new node with the standard evaluation
                 // The next node will have the view of the opponent
-                Node::new(new_state, player.other_player())
+                Node::new(new_state)
             })
             .collect();
 
         children.sort();
         self.children = Some(children);
-        
+
         self
     }
 }

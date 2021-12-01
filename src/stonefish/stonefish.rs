@@ -75,10 +75,8 @@ impl UciEngine for Stonefish {
     fn go(&mut self, _go_config: UciGoConfig, _stop_flag: StopFlag) {
         println!("info string go");
 
-        let engine = self.board.turn();
-
-        let mut root = Node::new(self.board.clone(), engine);
-        root.expand(engine);
+        let mut root = Node::new(self.board.clone());
+        root.expand();
 
         if let Some(node) = root.children.unwrap().first() {
             let mv = node.state.last_move().unwrap();
