@@ -83,8 +83,14 @@ impl UciEngine for Stonefish {
             // The current score evaluation from the engine's point of view
             let score = match node.evaluation.for_other_player() {
                 Evaluation::Material(cp) => format!("cp {}", cp),
-                Evaluation::PlayerCheckmate(moves) => format!("mate {}", moves),
-                Evaluation::OpponentCheckmate(moves) => format!("mate {}", -(moves as i32)),
+                Evaluation::PlayerCheckmate(plies) => {
+                    // Convert plies to moves
+                    format!("mate {}", (plies as f32 / 2.0).ceil() as i32)
+                }
+                Evaluation::OpponentCheckmate(plies) => {
+                    // Convert plies to moves
+                    format!("mate {}", -((plies as f32 / 2.0).ceil() as i32))
+                }
             };
 
             println!("info pv {} score {}", mv.stringify(), score);
