@@ -77,6 +77,8 @@ impl UciEngine for Stonefish {
     fn go(&mut self, _go_config: UciGoConfig, _stop_flag: StopFlag) {
         println!("info string go");
 
+        let engine = self.board.turn();
+
         let moves = self.board.generate_moves();
 
         // Apply every possible move to a new board
@@ -89,30 +91,18 @@ impl UciEngine for Stonefish {
             })
             .collect();
 
-        move_boards.sort_by_key(|(_, board)| board.evaluate());
+        // Sort the moves, good moves for the engine are first
+        move_boards.sort_by_key(|(_, board)| board.evaluate(engine));
 
-        let best_move = match self.board.turn() {
-            pleco::Player::White => move_boards.last(),
-            pleco::Player::Black => move_boards.first(),
-        };
-
-        if let Some((mv, board)) = best_move {
-            // Calculate the score after the move was played, in centipawns
-            let score = match board.evaluate() {
-                Evaluation::Eval(eval) => eval * 100,
-                Evaluation::Checkmate(_, player) => match player {
-                    pleco::Player::White => 100000,
-                    pleco::Player::Black => -100000,
-                },
+        if let Some((mv, board)) = move_boards.first() {
+            // The current score evaluation from the engine's point of view
+            let score = match board.evaluate(engine) {
+                Evaluation::Material(cp) => format!("cp {}", cp),
+                Evaluation::PlayerCheckmate(moves) => format!("mate {}", moves + 1),
+                Evaluation::OpponentCheckmate(moves) => format!("mate {}", -(moves as i32) - 1),
             };
 
-            // Convert to the score from the engine's point of view
-            let cp = match board.turn().other_player() {
-                pleco::Player::White => score,
-                pleco::Player::Black => -score,
-            };
-
-            println!("info pv {} score cp {}", mv.stringify(), cp);
+            println!("info pv {} score {}", mv.stringify(), score);
             println!("bestmove {}", mv.stringify());
         }
     }
