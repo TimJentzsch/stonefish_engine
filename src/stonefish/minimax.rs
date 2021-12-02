@@ -1,8 +1,13 @@
 use super::{evaluation::Evaluation, node::Node};
 
 impl Node {
-    /// The minimax search algorithm.
-    fn minimax(&mut self, depth: usize) -> Evaluation {
+    /// The implementation of minimax with alpha-beta-pruning.
+    fn minimax_helper(
+        &mut self,
+        depth: usize,
+        alpha: &mut Evaluation,
+        beta: &mut Evaluation,
+    ) -> Evaluation {
         if depth == 0 {
             return self.evaluation;
         }
@@ -24,13 +29,31 @@ impl Node {
             // Search through all moves to find the best option
             for child in children {
                 // Convert the evaluation to this player's point of view
-                let child_eval = child.minimax(depth - 1).for_other_player();
+                let child_eval = child
+                    // We have to swap alpha and beta here, because it's the other player's turn
+                    .minimax_helper(depth - 1, beta, alpha)
+                    .for_other_player();
                 eval = eval.max(child_eval);
+                if eval >= *beta {
+                    break;
+                }
+                *alpha = eval.max(*alpha);
             }
         }
 
         self.evaluation = eval;
         eval
+    }
+
+    /// The minimax search algorithm with alpha-beta-pruning.
+    ///
+    /// See https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning.
+    pub fn minimax(&mut self, depth: usize) -> Evaluation {
+        self.minimax_helper(
+            depth,
+            &mut Evaluation::OpponentCheckmate(0),
+            &mut Evaluation::PlayerCheckmate(0),
+        )
     }
 }
 
@@ -80,6 +103,17 @@ mod test {
         let mut node = Node::new(board);
         let actual = node.minimax(3);
         let expected = Evaluation::PlayerCheckmate(3);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn should_find_mate_in_three_opponent() {
+        // Mate in 3 (4 plies)
+        let board = Board::from_fen("6k1/pp4pp/4p3/3p4/1P1qn3/N3Q3/P2B2PP/2r3K1 w - - 0 21").unwrap();
+        let mut node = Node::new(board);
+        let actual = node.minimax(4);
+        let expected = Evaluation::OpponentCheckmate(4);
 
         assert_eq!(actual, expected);
     }
