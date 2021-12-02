@@ -22,7 +22,7 @@ pub enum UciPosition {
 #[derive(Debug, PartialEq)]
 pub struct UciGoConfig {
     /// Restrict search to these moves only.
-    search_moves: Option<Vec<String>>,
+    pub search_moves: Option<Vec<String>>,
     /// Start searching in pondering mode.
     ///
     /// Do not exit the search in ponder mode, even if it's mate!
@@ -33,30 +33,30 @@ pub struct UciGoConfig {
     /// interpreted as a recommendation about which move to ponder. However, if the engine decides
     /// to ponder on a different move, it should not display any mainlines as they are likely to be
     /// misinterpreted by the GUI because the GUI expects the engine to ponder on the suggested move.
-    ponder: bool,
+    pub ponder: bool,
     /// The time that white has left on the clock, in milliseconds.
-    white_time_ms: Option<usize>,
+    pub white_time_ms: Option<usize>,
     /// The time that black has left on the clock, in milliseconds.
-    black_time_ms: Option<usize>,
+    pub black_time_ms: Option<usize>,
     /// White increment per move in milliseconds.
-    white_increment_ms: usize,
+    pub white_increment_ms: usize,
     /// Black increment per move in milliseconds.
-    black_increment_ms: usize,
+    pub black_increment_ms: usize,
     /// The amount of moves to the next time control.
     ///
     /// If you don't get this and get the `white_time_ms` and `black_time_ms` it's sudden death.
-    moves_to_go: usize,
+    pub moves_to_go: usize,
     /// The maximum depth to search, in plies.
-    max_depth: Option<usize>,
+    pub max_depth: Option<usize>,
     /// The maximum amount of nodes to saerch.
-    max_nodes: Option<usize>,
+    pub max_nodes: Option<usize>,
     /// Search for a mate in the specified number of moves.
-    search_mate: Option<usize>,
+    pub search_mate: Option<usize>,
     /// The exact amount of time to search for, in milliseconds.
-    move_time_ms: Option<usize>,
+    pub move_time_ms: Option<usize>,
     /// Search until the `stop` command.
     /// Do not exit the search without being told so in this mode!
-    infinite: bool,
+    pub infinite: bool,
 }
 
 impl UciCommand {

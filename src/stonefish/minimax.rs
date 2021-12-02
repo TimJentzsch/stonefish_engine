@@ -41,6 +41,11 @@ impl Node {
             }
         }
 
+        // Re-sort the children
+        if let Some(children) = &mut self.children {
+            children.sort();
+        }
+
         self.evaluation = eval;
         eval
     }
