@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 /// The evaluation of a given position.
 ///
 /// Smaller values mean an advantage for the opponent, bigger values an advantage for the current player.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Evaluation {
     /// A material evaluation in centipawns.
     ///
