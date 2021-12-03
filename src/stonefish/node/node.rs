@@ -13,6 +13,8 @@ impl Node {
             board: state,
             evaluation: eval,
             children: None,
+            size: 1,
+            depth: 0,
         }
     }
 
@@ -37,6 +39,8 @@ impl Node {
             .collect();
 
         children.sort();
+        // Important: Keep attributes up-to-date
+        self.update_attributes();
         self.children = Some(children);
 
         self

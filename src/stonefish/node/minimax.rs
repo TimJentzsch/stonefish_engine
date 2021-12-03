@@ -48,6 +48,7 @@ impl Node {
 
                 // Check if the search has been aborted
                 if let Err(err) = child_eval {
+                    self.update_attributes();
                     return Err(err);
                 }
 
@@ -68,6 +69,8 @@ impl Node {
             children.sort();
         }
 
+        // Keep depth and size up-to-date
+        self.update_attributes();
         self.evaluation = eval;
         Ok(eval)
     }

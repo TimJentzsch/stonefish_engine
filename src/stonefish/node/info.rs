@@ -7,34 +7,46 @@ use super::Node;
 pub type Line = Vec<BitMove>;
 
 impl Node {
-    /// Determine the number of nodes in the tree.
-    pub fn size(&self) -> usize {
+    /// Update the size attribute of the node.
+    /// 
+    /// This should always be called after the children have been modified.
+    fn update_size(&mut self) {
         if let Some(children) = &self.children {
             let mut size: usize = 1;
 
             for child in children {
-                size += child.size();
+                size += child.size;
             }
 
-            size
+            self.size = size;
         } else {
-            1
+            self.size = 1
         }
     }
 
-    /// Determine the depth of the tree.
-    pub fn depth(&self) -> usize {
+    /// Update the depth attribute of the node.
+    /// 
+    /// This should always be called after the children have been modified.
+    fn update_depth(&mut self) {
         if let Some(children) = &self.children {
             let mut depth: usize = 0;
 
             for child in children {
-                depth = depth.max(child.depth() + 1);
+                depth = depth.max(child.depth + 1);
             }
 
-            depth
+            self.depth = depth;
         } else {
-            0
+            self.depth = 0;
         }
+    }
+
+    /// Update the attributes of the node.
+    /// 
+    /// This should always be called after the children have been modified.
+    pub fn update_attributes(&mut self) {
+        self.update_size();
+        self.update_depth();
     }
 
     /// The best successor node.
@@ -99,8 +111,8 @@ impl Node {
 
         println!(
             "info depth {} nodes {} pv {} score {}",
-            self.depth(),
-            self.size(),
+            self.depth,
+            self.size,
             Self::format_line(&self.best_line()),
             score,
         );
