@@ -45,7 +45,7 @@ impl Node {
     /// The best move to play.
     pub fn best_move(&self) -> Option<BitMove> {
         if let Some(node) = self.best_node() {
-            node.state.last_move()
+            node.board.last_move()
         } else {
             None
         }

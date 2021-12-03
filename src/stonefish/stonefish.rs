@@ -90,7 +90,7 @@ impl UciEngine for Stonefish {
         let eval = root.iterative_deepening(max_depth, stop_flag);
 
         if let Some(node) = root.children.unwrap().first() {
-            let mv = node.state.last_move().unwrap();
+            let mv = node.board.last_move().unwrap();
             // The current score evaluation from the engine's point of view
             let score = match eval {
                 Evaluation::Material(cp) => format!("cp {}", cp),

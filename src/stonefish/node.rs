@@ -5,7 +5,7 @@ use super::{evaluatable::Evaluatable, evaluation::Evaluation};
 /// A node of a search tree.
 pub struct Node {
     /// The current board state.
-    pub state: Board,
+    pub board: Board,
     /// The current evaluation for this position.
     pub evaluation: Evaluation,
     /// The children of this node.
@@ -20,7 +20,7 @@ impl Node {
         let eval = state.evaluate();
 
         Node {
-            state: state,
+            board: state,
             evaluation: eval,
             children: None,
         }
@@ -31,14 +31,14 @@ impl Node {
     /// This will generate all children of this node.
     pub fn expand(&mut self) -> &mut Self {
         let mut children: Vec<Node> = self
-            .state
+            .board
             // Generate all possible moves
             .generate_moves()
             .iter()
             // Create a new child for each move
             .map(|mv| {
                 // Play the move on a new board
-                let mut new_state = self.state.clone();
+                let mut new_state = self.board.clone();
                 new_state.apply_move(*mv);
                 // Create a new node with the standard evaluation
                 // The next node will have the view of the opponent
