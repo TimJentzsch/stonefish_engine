@@ -46,7 +46,6 @@ impl UciEngine for Stonefish {
     }
 
     fn new_game(&mut self) {
-        println!("info string new_game");
         // Reset the board
         self.board = Board::start_pos();
     }
@@ -75,15 +74,11 @@ impl UciEngine for Stonefish {
             }
         }
 
-        println!("info string Changed position to {}", new_board.fen());
-
         // Save the new board
         self.board = new_board;
     }
 
     fn go(&mut self, go_config: UciGoConfig, stop_flag: StopFlag) {
-        println!("info string go");
-
         let mut root = Node::new(self.board.clone());
 
         // Determine search depth if one is given

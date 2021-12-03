@@ -109,12 +109,30 @@ impl Node {
             }
         };
 
+        // Example from Stockfish:
+        // info depth 1 seldepth 1 multipv 1 score cp 112 nodes 20 nps 20000 tbhits 0 time 1 pv e2e4
         println!(
-            "info depth {} nodes {} pv {} score {}",
+            "info depth {} seldepth {} multipv {} score {} nodes {} nps {} tbhits {} time {} pv {}  ",
+            // Depth
             self.depth,
-            self.size,
-            Self::format_line(&self.best_line()),
+            // Seldepth (we search the same depth for all moves)
+            self.depth,
+            // Multi PV (we can only show one line at a time at the moment)
+            1,
+            // Score
             score,
+            // Nodes
+            self.size,
+            // Nps
+            // TODO: Calculate nodes per second
+            self.size,
+            // Tbhits (not implemented yet)
+            0,
+            // Time
+            // TODO: Determine time
+            1,
+            // Pv
+            Self::format_line(&self.best_line()),
         );
     }
 }
