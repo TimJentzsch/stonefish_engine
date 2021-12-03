@@ -4,7 +4,7 @@ use crate::{
     stonefish::node::Node,
     uci::{
         uci::{StopFlag, UciEngine},
-        uci_command::{UciGoConfig, UciPosition},
+        uci_command::{UciGoConfig, UciPosition}, uci_option::{UciOption, UciOptionType},
     },
 };
 
@@ -34,6 +34,15 @@ impl UciEngine for Stonefish {
 
     fn get_author(&self) -> Option<&str> {
         Some("Tim3303")
+    }
+
+    fn get_options(&self) -> Vec<UciOption> {
+        vec![
+            // We don't use this yet, but it's mandatory for some GUIs
+            UciOption::new("Hash", UciOptionType::Spin),
+            // We don't change behavior, but we wanna do analysis
+            UciOption::new("UCI_AnalyseMode", UciOptionType::Check),
+        ]
     }
 
     fn new_game(&mut self) {

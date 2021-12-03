@@ -5,6 +5,7 @@ use std::sync::Arc;
 use std::{io, sync, thread};
 
 use super::uci_command::{UciCommand, UciGoConfig, UciPosition};
+use super::uci_option::UciOption;
 
 pub type StopFlag = Arc<AtomicBool>;
 
@@ -22,6 +23,11 @@ pub trait UciEngine {
     /// The author of the engine.
     fn get_author(&self) -> Option<&str> {
         None
+    }
+
+    /// The options available in the engine.
+    fn get_options(&self) -> Vec<UciOption> {
+        vec![]
     }
 
     /// Set debugging mode on or off.
@@ -69,6 +75,9 @@ impl UciRunner {
                     }
                     if let Some(author) = engine.get_author() {
                         println!("id author {}", author);
+                    }
+                    for option in engine.get_options() {
+                        option.send_option();
                     }
                     println!("uciok");
                 }
