@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use pleco::BitMove;
 
 use crate::stonefish::evaluation::Evaluation;
@@ -30,7 +28,7 @@ impl Node {
             let mut depth: usize = 0;
 
             for child in children {
-                depth += depth.max(child.depth() + 1);
+                depth = depth.max(child.depth() + 1);
             }
 
             depth

@@ -24,6 +24,8 @@ impl Node {
                 break;
             }
 
+            // Update the GUI on the current evaluation
+            self.send_info();
             depth += 1;
         }
 

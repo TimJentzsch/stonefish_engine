@@ -1,7 +1,7 @@
 use pleco::Board;
 
 use crate::{
-    stonefish::{evaluation::Evaluation, node::Node},
+    stonefish::node::Node,
     uci::{
         uci::{StopFlag, UciEngine},
         uci_command::{UciGoConfig, UciPosition},
@@ -87,27 +87,9 @@ impl UciEngine for Stonefish {
         };
 
         // Search for the best move
-        let eval = root.iterative_deepening(max_depth, stop_flag);
+        root.iterative_deepening(max_depth, stop_flag);
 
-        if let Some(node) = root.children.unwrap().first() {
-            let mv = node.board.last_move().unwrap();
-            // The current score evaluation from the engine's point of view
-            let score = match eval {
-                Evaluation::Material(cp) => format!("cp {}", cp),
-                Evaluation::PlayerCheckmate(plies) => {
-                    // Convert plies to moves
-                    format!("mate {}", (plies as f32 / 2.0).ceil() as i32)
-                }
-                Evaluation::OpponentCheckmate(plies) => {
-                    // Convert plies to moves
-                    format!("mate {}", -((plies as f32 / 2.0).ceil() as i32))
-                }
-            };
-
-            println!("info pv {} score {}", mv.stringify(), score);
-            println!("bestmove {}", mv.stringify());
-        } else {
-            println!("info string No move possible.");
-        };
+        root.send_info();
+        root.send_best_move();
     }
 }
