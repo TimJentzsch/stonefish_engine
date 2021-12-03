@@ -1,6 +1,12 @@
+use std::sync::atomic::Ordering;
+
 use crate::uci::uci::StopFlag;
 
 use super::{evaluation::Evaluation, node::Node};
+
+/// The search has been aborted.
+#[derive(Debug, PartialEq)]
+pub struct StoppedSearch;
 
 impl Node {
     /// The implementation of minimax with alpha-beta-pruning.
@@ -10,9 +16,14 @@ impl Node {
         alpha: &mut Evaluation,
         beta: &mut Evaluation,
         stop_flag: StopFlag,
-    ) -> Evaluation {
+    ) -> Result<Evaluation, StoppedSearch> {
         if depth == 0 {
-            return self.evaluation;
+            return Ok(self.evaluation);
+        }
+
+        // Check if the search has been aborted
+        if stop_flag.load(Ordering::SeqCst) {
+            return Err(StoppedSearch);
         }
 
         // Expand the node if necessary
@@ -26,20 +37,28 @@ impl Node {
         if let Some(children) = &mut self.children {
             if children.len() == 0 {
                 // There are no moves to play
-                return self.evaluation;
+                return Ok(self.evaluation);
             }
 
             // Search through all moves to find the best option
             for child in children {
-                // Convert the evaluation to this player's point of view
                 let child_eval = child
                     // We have to swap alpha and beta here, because it's the other player's turn
-                    .minimax_helper(depth - 1, beta, alpha, stop_flag.clone())
-                    .for_other_player();
-                eval = eval.max(child_eval);
+                    .minimax_helper(depth - 1, beta, alpha, stop_flag.clone());
+
+                // Check if the search has been aborted
+                if let Err(err) = child_eval {
+                    return Err(err);
+                }
+
+                // Convert the evaluation to this player's point of view and take the best value
+                eval = eval.max(child_eval.unwrap().for_other_player());
+
                 if eval >= *beta {
+                    // Prun the branch
                     break;
                 }
+
                 *alpha = eval.max(*alpha);
             }
         }
@@ -50,13 +69,13 @@ impl Node {
         }
 
         self.evaluation = eval;
-        eval
+        Ok(eval)
     }
 
     /// The minimax search algorithm with alpha-beta-pruning.
     ///
     /// See https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning.
-    pub fn minimax(&mut self, depth: usize, stop_flag: StopFlag) -> Evaluation {
+    pub fn minimax(&mut self, depth: usize, stop_flag: StopFlag) -> Result<Evaluation, StoppedSearch> {
         self.minimax_helper(
             depth,
             &mut Evaluation::OpponentCheckmate(0),
@@ -68,7 +87,7 @@ impl Node {
 
 #[cfg(test)]
 mod test {
-    use std::sync::{Arc, atomic::AtomicBool};
+    use std::sync::{atomic::AtomicBool, Arc};
 
     use pleco::Board;
 
@@ -80,7 +99,7 @@ mod test {
         let board = Board::from_fen("3Q1k2/5p1p/p3p2P/3p4/8/2Pq2P1/1P3PK1/8 b - - 2 37").unwrap();
         let mut node = Node::new(board);
         let actual = node.minimax(0, Arc::new(AtomicBool::new(false)));
-        let expected = Evaluation::OpponentCheckmate(0);
+        let expected = Ok(Evaluation::OpponentCheckmate(0));
 
         assert_eq!(actual, expected);
     }
@@ -91,7 +110,7 @@ mod test {
         let board = Board::from_fen("5k2/5p1p/p3p2P/3p2Q1/8/2Pq2P1/1P3PK1/8 w - - 1 37").unwrap();
         let mut node = Node::new(board);
         let actual = node.minimax(1, Arc::new(AtomicBool::new(false)));
-        let expected = Evaluation::PlayerCheckmate(1);
+        let expected = Ok(Evaluation::PlayerCheckmate(1));
 
         assert_eq!(actual, expected);
     }
@@ -102,7 +121,7 @@ mod test {
         let board = Board::from_fen("8/8/1r3p2/1p6/p5kR/2rB2P1/5P1K/8 b - - 21 47").unwrap();
         let mut node = Node::new(board);
         let actual = node.minimax(2, Arc::new(AtomicBool::new(false)));
-        let expected = Evaluation::OpponentCheckmate(2);
+        let expected = Ok(Evaluation::OpponentCheckmate(2));
 
         assert_eq!(actual, expected);
     }
@@ -113,7 +132,7 @@ mod test {
         let board = Board::from_fen("8/7R/1r3p2/1p6/p5k1/2rB2P1/5P1K/8 w - - 20 47").unwrap();
         let mut node = Node::new(board);
         let actual = node.minimax(3, Arc::new(AtomicBool::new(false)));
-        let expected = Evaluation::PlayerCheckmate(3);
+        let expected = Ok(Evaluation::PlayerCheckmate(3));
 
         assert_eq!(actual, expected);
     }
@@ -125,7 +144,7 @@ mod test {
             Board::from_fen("6k1/pp4pp/4p3/3p4/1P1qn3/N3Q3/P2B2PP/2r3K1 w - - 0 21").unwrap();
         let mut node = Node::new(board);
         let actual = node.minimax(4, Arc::new(AtomicBool::new(false)));
-        let expected = Evaluation::OpponentCheckmate(4);
+        let expected = Ok(Evaluation::OpponentCheckmate(4));
 
         assert_eq!(actual, expected);
     }

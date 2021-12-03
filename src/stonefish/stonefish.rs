@@ -87,25 +87,27 @@ impl UciEngine for Stonefish {
         };
 
         // Search for the best move
-        root.minimax(depth, stop_flag);
+        if let Ok(eval) = root.minimax(depth, stop_flag) {
+            if let Some(node) = root.children.unwrap().first() {
+                let mv = node.state.last_move().unwrap();
+                // The current score evaluation from the engine's point of view
+                let score = match eval {
+                    Evaluation::Material(cp) => format!("cp {}", cp),
+                    Evaluation::PlayerCheckmate(plies) => {
+                        // Convert plies to moves
+                        format!("mate {}", (plies as f32 / 2.0).ceil() as i32)
+                    }
+                    Evaluation::OpponentCheckmate(plies) => {
+                        // Convert plies to moves
+                        format!("mate {}", -((plies as f32 / 2.0).ceil() as i32))
+                    }
+                };
 
-        if let Some(node) = root.children.unwrap().first() {
-            let mv = node.state.last_move().unwrap();
-            // The current score evaluation from the engine's point of view
-            let score = match node.evaluation.for_other_player() {
-                Evaluation::Material(cp) => format!("cp {}", cp),
-                Evaluation::PlayerCheckmate(plies) => {
-                    // Convert plies to moves
-                    format!("mate {}", (plies as f32 / 2.0).ceil() as i32)
-                }
-                Evaluation::OpponentCheckmate(plies) => {
-                    // Convert plies to moves
-                    format!("mate {}", -((plies as f32 / 2.0).ceil() as i32))
-                }
-            };
-
-            println!("info pv {} score {}", mv.stringify(), score);
-            println!("bestmove {}", mv.stringify());
-        }
+                println!("info pv {} score {}", mv.stringify(), score);
+                println!("bestmove {}", mv.stringify());
+            }
+        } else {
+            println!("info string Stopped search.");
+        };
     }
 }
