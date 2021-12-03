@@ -1,6 +1,6 @@
 use pleco::Board;
 
-use super::{evaluatable::Evaluatable, evaluation::Evaluation};
+use super::{evaluation::{Evaluation, evaluatable::Evaluatable}};
 
 /// A node of a search tree.
 pub struct Node {

@@ -1,6 +1,6 @@
 use pleco::{Board, PieceType, Player};
 
-use super::evaluation::Evaluation;
+use super::Evaluation;
 
 pub trait Evaluatable {
     fn material_value(&self, player: Player) -> i32;
