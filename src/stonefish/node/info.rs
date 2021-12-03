@@ -1,6 +1,10 @@
+use std::fmt::Display;
+
 use pleco::BitMove;
 
 use super::Node;
+
+pub type Line = Vec<BitMove>;
 
 impl Node {
     /// Determine the number of nodes in the tree.
@@ -48,6 +52,30 @@ impl Node {
             node.board.last_move()
         } else {
             None
+        }
+    }
+    
+    /// The best line to play.
+    pub fn best_line(&self) -> Line {
+        if let Some(node) = self.best_node() {
+            let best_move = vec![self.best_move().unwrap()];
+            let best_child_line = node.best_line();
+            let best_line = vec![best_move, best_child_line].concat();
+            best_line
+        } else {
+            vec![]
+        }
+    }
+
+    /// Format a line of moves.
+    fn format_line(line: &Line) -> String {
+        line.iter().map(|mv| mv.stringify()).collect::<Vec<String>>().join(" ")
+    }
+
+    /// Send the best move to the engine.
+    pub fn send_best_move(&self) {
+        if let Some(mv) = self.best_move() {
+            println!("bestmove {}", mv.stringify());
         }
     }
 }
