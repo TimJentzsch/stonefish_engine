@@ -72,7 +72,7 @@ impl UciEngine for Stonefish {
         self.board = new_board;
     }
 
-    fn go(&mut self, go_config: UciGoConfig, _stop_flag: StopFlag) {
+    fn go(&mut self, go_config: UciGoConfig, stop_flag: StopFlag) {
         println!("info string go");
 
         let mut root = Node::new(self.board.clone());
@@ -87,7 +87,7 @@ impl UciEngine for Stonefish {
         };
 
         // Search for the best move
-        root.minimax(depth);
+        root.minimax(depth, stop_flag);
 
         if let Some(node) = root.children.unwrap().first() {
             let mv = node.state.last_move().unwrap();
