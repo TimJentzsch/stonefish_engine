@@ -1,6 +1,6 @@
-use crate::uci::uci::StopFlag;
+use crate::{uci::uci::StopFlag, stonefish::evaluation::Evaluation};
 
-use super::{evaluation::Evaluation, node::Node};
+use super::{Node};
 
 impl Node {
     pub fn iterative_deepening(&mut self, max_depth: Option<usize>, stop_flag: StopFlag) -> Evaluation {

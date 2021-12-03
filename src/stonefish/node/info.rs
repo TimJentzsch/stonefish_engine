@@ -1,6 +1,6 @@
 use pleco::BitMove;
 
-use super::node::Node;
+use super::Node;
 
 impl Node {
     /// Determine the number of nodes in the tree.

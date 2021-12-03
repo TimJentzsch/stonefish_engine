@@ -1,8 +1,8 @@
 use std::sync::atomic::Ordering;
 
-use crate::uci::uci::StopFlag;
+use crate::{uci::uci::StopFlag, stonefish::evaluation::Evaluation};
 
-use super::{evaluation::Evaluation, node::Node};
+use super::{Node};
 
 /// The search has been aborted.
 #[derive(Debug, PartialEq)]
