@@ -77,37 +77,37 @@ impl UciEngine for Stonefish {
 
         let mut root = Node::new(self.board.clone());
 
-        // Determine search depth
-        let depth = if let Some(max_depth) = go_config.max_depth {
-            max_depth
+        // Determine search depth if one is given
+        let max_depth = if let Some(max_depth) = go_config.max_depth {
+            Some(max_depth)
         } else if let Some(search_mate) = go_config.search_mate {
-            search_mate
+            Some(search_mate)
         } else {
-            4
+            None
         };
 
         // Search for the best move
-        if let Ok(eval) = root.minimax(depth, stop_flag) {
-            if let Some(node) = root.children.unwrap().first() {
-                let mv = node.state.last_move().unwrap();
-                // The current score evaluation from the engine's point of view
-                let score = match eval {
-                    Evaluation::Material(cp) => format!("cp {}", cp),
-                    Evaluation::PlayerCheckmate(plies) => {
-                        // Convert plies to moves
-                        format!("mate {}", (plies as f32 / 2.0).ceil() as i32)
-                    }
-                    Evaluation::OpponentCheckmate(plies) => {
-                        // Convert plies to moves
-                        format!("mate {}", -((plies as f32 / 2.0).ceil() as i32))
-                    }
-                };
+        let eval = root.iterative_deepening(max_depth, stop_flag);
 
-                println!("info pv {} score {}", mv.stringify(), score);
-                println!("bestmove {}", mv.stringify());
-            }
+        if let Some(node) = root.children.unwrap().first() {
+            let mv = node.state.last_move().unwrap();
+            // The current score evaluation from the engine's point of view
+            let score = match eval {
+                Evaluation::Material(cp) => format!("cp {}", cp),
+                Evaluation::PlayerCheckmate(plies) => {
+                    // Convert plies to moves
+                    format!("mate {}", (plies as f32 / 2.0).ceil() as i32)
+                }
+                Evaluation::OpponentCheckmate(plies) => {
+                    // Convert plies to moves
+                    format!("mate {}", -((plies as f32 / 2.0).ceil() as i32))
+                }
+            };
+
+            println!("info pv {} score {}", mv.stringify(), score);
+            println!("bestmove {}", mv.stringify());
         } else {
-            println!("info string Stopped search.");
+            println!("info string No move possible.");
         };
     }
 }
