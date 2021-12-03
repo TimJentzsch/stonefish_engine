@@ -1,3 +1,5 @@
+use pleco::BitMove;
+
 use super::node::Node;
 
 impl Node {
@@ -28,6 +30,24 @@ impl Node {
             depth
         } else {
             0
+        }
+    }
+
+    /// The best successor node.
+    pub fn best_node(&self) -> Option<&Node> {
+        if let Some(children) = &self.children {
+            children.first()
+        } else {
+            None
+        }
+    }
+
+    /// The best move to play.
+    pub fn best_move(&self) -> Option<BitMove> {
+        if let Some(node) = self.best_node() {
+            node.state.last_move()
+        } else {
+            None
         }
     }
 }
