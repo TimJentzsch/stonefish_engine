@@ -39,7 +39,7 @@ impl UciEngine for Stonefish {
     fn get_options(&self) -> Vec<UciOption> {
         vec![
             // We don't use this yet, but it's mandatory for some GUIs
-            UciOption::new("Hash", UciOptionType::Spin),
+            UciOption::new_with_default("Hash", UciOptionType::Spin, "32"),
             // We don't change behavior, but we wanna do analysis
             UciOption::new("UCI_AnalyseMode", UciOptionType::Check),
         ]

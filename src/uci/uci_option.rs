@@ -41,6 +41,17 @@ impl UciOption {
         }
     }
 
+    pub fn new_with_default(name: &str, option_type: UciOptionType, default: &str) -> UciOption {
+        UciOption {
+            name: name.to_string(),
+            option_type,
+            default: Some(default.to_string()),
+            min: None,
+            max: None,
+            vars: None,
+        }
+    }
+
     /// Send the option from the engine to the GUI
     pub fn send_option(&self) {
         // Mandatory options
