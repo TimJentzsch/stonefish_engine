@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use pleco::Board;
 
 use crate::{
@@ -91,8 +93,31 @@ impl UciEngine for Stonefish {
             None
         };
 
+        // Determine player time and increment
+        let (time, increment) = match root.board.turn() {
+            pleco::Player::White => (go_config.white_time_ms, go_config.white_increment_ms),
+            pleco::Player::Black => (go_config.black_time_ms, go_config.black_increment_ms),
+        };
+
+        // Determine maximum time
+        let max_time = if let Some(move_time_ms) = go_config.move_time_ms {
+            Some(Duration::from_millis(move_time_ms.try_into().unwrap()))
+        } else if go_config.infinite {
+            // Search infinitely
+            None
+        } else if let Some(time_ms) = time {
+            // Take 5 seconds for each move
+            let base_time_ms: u64 = 5000.max(time_ms.try_into().unwrap());
+            // Additionally use the increment time
+            let increment_time_ms: u64 = increment.try_into().unwrap();
+            Some(Duration::from_millis(increment_time_ms + base_time_ms))
+        } else {
+            // Search for 10 seconds
+            Some(Duration::from_millis(10000))
+        };
+
         // Search for the best move
-        root.iterative_deepening(max_depth, None, stop_flag);
+        root.iterative_deepening(max_depth, max_time, stop_flag);
 
         root.send_info();
         root.send_best_move();
