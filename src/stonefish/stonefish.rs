@@ -108,7 +108,7 @@ impl UciEngine for Stonefish {
             None
         } else if let Some(time_ms) = time {
             // Take 5 seconds for each move
-            let base_time_ms: u64 = 5000.max(time_ms.try_into().unwrap());
+            let base_time_ms: u64 = 5000.min(time_ms.try_into().unwrap());
             // Additionally use the increment time
             let increment_time_ms: u64 = increment.try_into().unwrap();
             Some(Duration::from_millis(increment_time_ms + base_time_ms))
