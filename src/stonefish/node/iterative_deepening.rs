@@ -1,9 +1,22 @@
-use crate::{uci::uci::StopFlag, stonefish::evaluation::Evaluation};
+use std::{
+    sync::{atomic::AtomicBool, Arc},
+    time::Duration,
+};
 
-use super::{Node};
+use crate::{stonefish::evaluation::Evaluation, uci::uci::StopFlag};
+
+use super::Node;
 
 impl Node {
-    pub fn iterative_deepening(&mut self, max_depth: Option<usize>, stop_flag: StopFlag) -> Evaluation {
+    pub fn iterative_deepening(
+        &mut self,
+        max_depth: Option<usize>,
+        max_time: Option<Duration>,
+        stop_flag: StopFlag,
+    ) -> Evaluation {
+        // When this flag is set to true, time has run out
+        let time_flag: StopFlag = Arc::new(AtomicBool::new(false));
+
         let mut depth: usize = 1;
 
         let mut eval = self.evaluation;
@@ -17,7 +30,7 @@ impl Node {
             }
 
             // Search at the current depth and update the evaluation
-            if let Ok(new_eval) = self.minimax(depth, stop_flag.clone()) {
+            if let Ok(new_eval) = self.minimax(depth, stop_flag.clone(), time_flag.clone()) {
                 eval = new_eval;
             } else {
                 // Abort the search

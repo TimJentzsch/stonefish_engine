@@ -4,7 +4,8 @@ use crate::{
     stonefish::node::Node,
     uci::{
         uci::{StopFlag, UciEngine},
-        uci_command::{UciGoConfig, UciPosition}, uci_option::{UciOption, UciOptionType},
+        uci_command::{UciGoConfig, UciPosition},
+        uci_option::{UciOption, UciOptionType},
     },
 };
 
@@ -91,7 +92,7 @@ impl UciEngine for Stonefish {
         };
 
         // Search for the best move
-        root.iterative_deepening(max_depth, stop_flag);
+        root.iterative_deepening(max_depth, None, stop_flag);
 
         root.send_info();
         root.send_best_move();
