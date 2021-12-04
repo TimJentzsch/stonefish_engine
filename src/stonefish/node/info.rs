@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use pleco::BitMove;
 
 use crate::stonefish::evaluation::Evaluation;
@@ -95,7 +97,7 @@ impl Node {
     }
 
     /// Send info about the current position to the engine.
-    pub fn send_info(&self) {
+    pub fn send_info(&self, duration: Duration) {
         // The evaluation of the current position
         let score = match self.evaluation {
             Evaluation::Material(cp) => format!("cp {}", cp),
@@ -124,13 +126,11 @@ impl Node {
             // Nodes
             self.size,
             // Nps
-            // TODO: Calculate nodes per second
-            self.size,
+            self.size as u64 / duration.as_secs().max(1),
             // Tbhits (not implemented yet)
             0,
             // Time
-            // TODO: Determine time
-            1,
+            duration.as_millis(),
             // Pv
             Self::format_line(&self.best_line()),
         );

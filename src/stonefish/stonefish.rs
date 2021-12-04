@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use pleco::Board;
 
@@ -82,6 +82,7 @@ impl UciEngine for Stonefish {
     }
 
     fn go(&mut self, go_config: UciGoConfig, stop_flag: StopFlag) {
+        let start = Instant::now();
         let mut root = Node::new(self.board.clone());
 
         // Determine search depth if one is given
@@ -119,7 +120,7 @@ impl UciEngine for Stonefish {
         // Search for the best move
         root.iterative_deepening(max_depth, max_time, stop_flag);
 
-        root.send_info();
+        root.send_info(start.elapsed());
         root.send_best_move();
     }
 }

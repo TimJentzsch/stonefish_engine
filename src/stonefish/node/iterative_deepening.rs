@@ -4,7 +4,7 @@ use std::{
         Arc,
     },
     thread,
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use crate::{stonefish::evaluation::Evaluation, uci::uci::StopFlag};
@@ -34,6 +34,7 @@ impl Node {
         max_time: Option<Duration>,
         stop_flag: StopFlag,
     ) -> Evaluation {
+        let start = Instant::now();
         // When this flag is set to true, time has run out
         let time_flag: StopFlag = Arc::new(AtomicBool::new(false));
         Self::set_timer(max_time, time_flag.clone());
@@ -59,7 +60,7 @@ impl Node {
             }
 
             // Update the GUI on the current evaluation
-            self.send_info();
+            self.send_info(start.elapsed());
             depth += 1;
         }
 
