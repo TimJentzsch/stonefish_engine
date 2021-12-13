@@ -7,7 +7,7 @@ use super::{Node};
 impl Node {
     /// Create a new node with the heuristic evaluation.
     pub fn new(state: Board) -> Node {
-        let eval = state.evaluate();
+        let eval = state.heuristic();
 
         Node {
             board: state,
