@@ -108,22 +108,4 @@ mod tests {
 
         assert_eq!(actual, expected);
     }
-
-    #[test]
-    fn should_evaluate_player_material_advantage() {
-        let board = Board::from_fen("k7/8/8/8/8/1K4R1/8/8 w - - 0 1").unwrap();
-        let expected = Evaluation::Material(500);
-        let actual = board.heuristic();
-
-        assert_eq!(actual, expected);
-    }
-
-    #[test]
-    fn should_evaluate_opponent_material_advantage() {
-        let board = Board::from_fen("k7/8/8/8/8/1K4R1/8/8 b - - 0 1").unwrap();
-        let expected = Evaluation::Material(-500);
-        let actual = board.heuristic();
-
-        assert_eq!(actual, expected);
-    }
 }
