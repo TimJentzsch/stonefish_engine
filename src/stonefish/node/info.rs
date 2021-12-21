@@ -47,6 +47,9 @@ impl Node {
     /// 
     /// This should always be called after the children have been modified.
     pub fn update_attributes(&mut self) {
+        if let Some(children) = &mut self.children {
+            children.sort();
+        }
         self.update_size();
         self.update_depth();
     }

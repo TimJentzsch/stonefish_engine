@@ -41,7 +41,7 @@ impl Node {
 
         // Expand the node if necessary
         if let None = self.children {
-            self.expand();
+            self.expand(hash_table);
         }
 
         // Expect the worst
@@ -83,11 +83,6 @@ impl Node {
 
                 *alpha = eval.max(*alpha);
             }
-        }
-
-        // Re-sort the children
-        if let Some(children) = &mut self.children {
-            children.sort();
         }
 
         // Keep depth and size up-to-date

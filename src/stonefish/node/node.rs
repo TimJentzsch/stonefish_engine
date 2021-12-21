@@ -2,16 +2,38 @@ use pleco::Board;
 
 use crate::stonefish::evaluation::evaluatable::Evaluatable;
 
-use super::Node;
+use super::{minimax::HashTable, Node};
 
 impl Node {
     /// Create a new node with the heuristic evaluation.
-    pub fn new(state: Board) -> Node {
+    pub fn new(state: Board) -> Self {
         let eval = state.heuristic();
 
-        Node {
+        Self {
             board: state,
             evaluation: eval,
+            children: None,
+            size: 1,
+            depth: 0,
+        }
+    }
+
+    /// Create a new node.
+    ///
+    /// If the state is already available in the hash table, it is taken as evaluation.
+    /// Otherwise, the heuristic value is used.
+    pub fn new_from_hash_table(state: Board, hash_table: &HashTable) -> Self {
+        let zobrist = state.zobrist();
+        // Check if the hash table already has an entry for this position
+        let evaluation = if let Some(&eval) = hash_table.get(&zobrist) {
+            eval
+        } else {
+            state.heuristic()
+        };
+
+        Self {
+            board: state,
+            evaluation,
             children: None,
             size: 1,
             depth: 0,
@@ -21,8 +43,8 @@ impl Node {
     /// Expands this node.
     ///
     /// This will generate all children of this node.
-    pub fn expand(&mut self) -> &mut Self {
-        let mut children: Vec<Node> = self
+    pub fn expand(&mut self, hash_table: &HashTable) -> &mut Self {
+        let children: Vec<Node> = self
             .board
             // Generate all possible moves
             .generate_moves()
@@ -34,11 +56,10 @@ impl Node {
                 new_state.apply_move(*mv);
                 // Create a new node with the standard evaluation
                 // The next node will have the view of the opponent
-                Node::new(new_state)
+                Node::new_from_hash_table(new_state, hash_table)
             })
             .collect();
 
-        children.sort();
         // Important: Keep attributes up-to-date
         self.update_attributes();
         self.children = Some(children);
