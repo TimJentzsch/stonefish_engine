@@ -1,8 +1,10 @@
-use std::sync::atomic::Ordering;
+use std::{collections::HashMap, sync::atomic::Ordering};
 
 use crate::{stonefish::evaluation::Evaluation, uci::uci::StopFlag};
 
 use super::Node;
+
+pub type HashTable = HashMap<u64, Evaluation>;
 
 /// The search has been aborted.
 #[derive(Debug, PartialEq)]
@@ -15,16 +17,26 @@ impl Node {
         depth: usize,
         alpha: &mut Evaluation,
         beta: &mut Evaluation,
+        hash_table: &mut HashTable,
         stop_flag: StopFlag,
         time_flag: StopFlag,
     ) -> Result<Evaluation, StoppedSearch> {
+        let zobrist = self.board.zobrist();
+
         if depth == 0 {
+            hash_table.insert(zobrist, self.evaluation);
             return Ok(self.evaluation);
         }
 
         // Check if the search has been aborted
         if stop_flag.load(Ordering::SeqCst) || time_flag.load(Ordering::SeqCst) {
             return Err(StoppedSearch);
+        }
+
+        // Check if the value has been cached
+        if let Some(&evaluation) = hash_table.get(&zobrist) {
+            self.evaluation = evaluation;
+            return Ok(evaluation);
         }
 
         // Expand the node if necessary
@@ -38,6 +50,7 @@ impl Node {
         if let Some(children) = &mut self.children {
             if children.len() == 0 {
                 // There are no moves to play
+                hash_table.insert(zobrist, self.evaluation);
                 return Ok(self.evaluation);
             }
 
@@ -45,7 +58,14 @@ impl Node {
             for child in children {
                 let child_eval = child
                     // We have to swap alpha and beta here, because it's the other player's turn
-                    .minimax_helper(depth - 1, beta, alpha, stop_flag.clone(), time_flag.clone());
+                    .minimax_helper(
+                        depth - 1,
+                        beta,
+                        alpha,
+                        hash_table,
+                        stop_flag.clone(),
+                        time_flag.clone(),
+                    );
 
                 // Check if the search has been aborted
                 if let Err(err) = child_eval {
@@ -73,6 +93,7 @@ impl Node {
         // Keep depth and size up-to-date
         self.update_attributes();
         self.evaluation = eval;
+        hash_table.insert(zobrist, eval);
         Ok(eval)
     }
 
@@ -82,6 +103,7 @@ impl Node {
     pub fn minimax(
         &mut self,
         depth: usize,
+        hash_table: &mut HashTable,
         stop_flag: StopFlag,
         time_flag: StopFlag,
     ) -> Result<Evaluation, StoppedSearch> {
@@ -89,6 +111,7 @@ impl Node {
             depth,
             &mut Evaluation::OpponentCheckmate(0),
             &mut Evaluation::PlayerCheckmate(0),
+            hash_table,
             stop_flag,
             time_flag,
         )
@@ -101,7 +124,7 @@ mod test {
 
     use pleco::Board;
 
-    use crate::stonefish::{evaluation::Evaluation, node::Node};
+    use crate::stonefish::{evaluation::Evaluation, node::{Node, minimax::HashTable}};
 
     #[test]
     fn should_find_mate_in_one_opponent() {
@@ -110,6 +133,7 @@ mod test {
         let mut node = Node::new(board);
         let actual = node.minimax(
             0,
+            &mut HashTable::new(),
             Arc::new(AtomicBool::new(false)),
             Arc::new(AtomicBool::new(false)),
         );
@@ -125,6 +149,7 @@ mod test {
         let mut node = Node::new(board);
         let actual = node.minimax(
             1,
+            &mut HashTable::new(),
             Arc::new(AtomicBool::new(false)),
             Arc::new(AtomicBool::new(false)),
         );
@@ -140,6 +165,7 @@ mod test {
         let mut node = Node::new(board);
         let actual = node.minimax(
             2,
+            &mut HashTable::new(),
             Arc::new(AtomicBool::new(false)),
             Arc::new(AtomicBool::new(false)),
         );
@@ -155,6 +181,7 @@ mod test {
         let mut node = Node::new(board);
         let actual = node.minimax(
             3,
+            &mut HashTable::new(),
             Arc::new(AtomicBool::new(false)),
             Arc::new(AtomicBool::new(false)),
         );
@@ -171,6 +198,7 @@ mod test {
         let mut node = Node::new(board);
         let actual = node.minimax(
             4,
+            &mut HashTable::new(),
             Arc::new(AtomicBool::new(false)),
             Arc::new(AtomicBool::new(false)),
         );

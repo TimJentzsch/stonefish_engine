@@ -9,7 +9,7 @@ use std::{
 
 use crate::{stonefish::evaluation::Evaluation, uci::uci::StopFlag};
 
-use super::Node;
+use super::{Node, minimax::HashTable};
 
 impl Node {
     /// Set a timer to abort the search.
@@ -51,13 +51,17 @@ impl Node {
                 }
             }
 
+            let mut hash_table = HashTable::new();
+
             // Search at the current depth and update the evaluation
-            if let Ok(new_eval) = self.minimax(depth, stop_flag.clone(), time_flag.clone()) {
+            if let Ok(new_eval) = self.minimax(depth, &mut hash_table, stop_flag.clone(), time_flag.clone()) {
                 eval = new_eval;
             } else {
                 // Abort the search
                 break;
             }
+
+            println!("info string Hash size: {}", hash_table.len());
 
             // Update the GUI on the current evaluation
             self.send_info(start.elapsed());

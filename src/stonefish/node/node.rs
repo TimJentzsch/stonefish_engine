@@ -2,7 +2,7 @@ use pleco::Board;
 
 use crate::stonefish::evaluation::evaluatable::Evaluatable;
 
-use super::{Node};
+use super::Node;
 
 impl Node {
     /// Create a new node with the heuristic evaluation.
