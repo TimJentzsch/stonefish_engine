@@ -8,43 +8,43 @@ pub trait Evaluatable {
     fn heuristic(&self) -> Evaluation;
 }
 
+/// Get the value of the given piece.
+fn get_piece_value(piece: PieceType) -> i32 {
+    match piece {
+        PieceType::P => 100,
+        PieceType::N | PieceType::B => 300,
+        PieceType::R => 500,
+        PieceType::Q => 800,
+        _ => 0,
+    }
+}
+
 impl Evaluatable for Board {
     /// The material value for the given player in centipawns.
     fn material_value(&self, player: Player) -> i32 {
-        self.count_piece(player, PieceType::P) as i32 * 100
-            + self.count_piece(player, PieceType::N) as i32 * 300
-            + self.count_piece(player, PieceType::B) as i32 * 300
-            + self.count_piece(player, PieceType::R) as i32 * 500
-            + self.count_piece(player, PieceType::Q) as i32 * 800
+        [
+            PieceType::P,
+            PieceType::N,
+            PieceType::B,
+            PieceType::R,
+            PieceType::Q,
+        ]
+        .into_iter()
+        .map(|piece| self.count_piece(player, piece) as i32 * get_piece_value(piece))
+        .sum()
     }
 
     /// Calculate the positional value for the current player.
     fn positional_value(&self) -> i32 {
         let mut value = 0;
-        let pseudo_moves = self.generate_pseudolegal_moves();
+        let captures = self.generate_pseudolegal_moves_of_type(pleco::core::GenTypes::Captures);
 
-        for mv in pseudo_moves {
-            let src_piece = self.piece_at_sq(mv.get_src());
+        for mv in captures {
+            let src_piece = self.piece_at_sq(mv.get_src()).type_of();
+            let dest_piece = self.piece_at_sq(mv.get_dest()).type_of();
 
-            // It's good when the pieces can move freely
-            value += match src_piece.type_of() {
-                PieceType::Q => 3,
-                PieceType::R => 2,
-                PieceType::N => 2,
-                PieceType::B => 1,
-                _ => 0,
-            };
-
-            let dest_piece = self.piece_at_sq(mv.get_dest());
-
-            // It's good to attack pieces
-            value += match dest_piece.type_of() {
-                PieceType::Q => 40,
-                PieceType::R => 25,
-                PieceType::B => 15,
-                PieceType::N => 15,
-                _ => 0,
-            };
+            // It's good to attack pieces of higher value
+            value += 0.max(get_piece_value(dest_piece) - get_piece_value(src_piece)) / 2;
         }
 
         value
