@@ -12,6 +12,9 @@ pub struct StoppedSearch;
 
 impl Node {
     /// The implementation of minimax with alpha-beta-pruning.
+    /// 
+    /// - `alpha`: Minimum value the current player is assured of
+    /// - `beta`: Minimum value the opponent player is assured of
     fn minimax_helper(
         &mut self,
         depth: usize,
@@ -76,8 +79,8 @@ impl Node {
                 // Convert the evaluation to this player's point of view and take the best value
                 eval = eval.max(child_eval.unwrap().for_other_player());
 
-                if eval >= *beta {
-                    // Prun the branch
+                if eval >= beta.for_other_player() {
+                    // The opponent has a better option, they won't consider this move
                     break;
                 }
 
@@ -105,7 +108,7 @@ impl Node {
         self.minimax_helper(
             depth,
             &mut Evaluation::OpponentCheckmate(0),
-            &mut Evaluation::PlayerCheckmate(0),
+            &mut Evaluation::OpponentCheckmate(0),
             hash_table,
             stop_flag,
             time_flag,
