@@ -18,8 +18,8 @@ impl Node {
     fn minimax_helper(
         &mut self,
         depth: usize,
-        alpha: &mut Evaluation,
-        beta: &mut Evaluation,
+        alpha: Evaluation,
+        beta: Evaluation,
         hash_table: &mut HashTable,
         stop_flag: StopFlag,
         time_flag: StopFlag,
@@ -48,7 +48,8 @@ impl Node {
         }
 
         // Expect the worst
-        let mut eval = Evaluation::OpponentCheckmate(0);
+        let mut cur_evaluation = Evaluation::OpponentCheckmate(0);
+        let mut alpha = alpha;
 
         if let Some(children) = &mut self.children {
             if children.len() == 0 {
@@ -77,22 +78,23 @@ impl Node {
                 }
 
                 // Convert the evaluation to this player's point of view and take the best value
-                eval = eval.max(child_eval.unwrap().for_other_player());
+                cur_evaluation = cur_evaluation.max(child_eval.unwrap().for_opponent().previous_plie());
 
-                if eval >= beta.for_other_player() {
-                    // The opponent has a better option, they won't consider this move
+                if cur_evaluation.for_opponent() <= beta {
+                    // The opponent has a better option in another branch, they won't choose this one
                     break;
                 }
 
-                *alpha = eval.max(*alpha);
+                // Update what our current best option is
+                alpha = alpha.max(cur_evaluation);
             }
         }
 
         // Keep depth and size up-to-date
         self.update_attributes();
-        self.evaluation = eval;
-        hash_table.insert(zobrist, eval);
-        Ok(eval)
+        self.evaluation = cur_evaluation;
+        hash_table.insert(zobrist, cur_evaluation);
+        Ok(cur_evaluation)
     }
 
     /// The minimax search algorithm with alpha-beta-pruning.
@@ -107,8 +109,8 @@ impl Node {
     ) -> Result<Evaluation, StoppedSearch> {
         self.minimax_helper(
             depth,
-            &mut Evaluation::OpponentCheckmate(0),
-            &mut Evaluation::OpponentCheckmate(0),
+            Evaluation::OpponentCheckmate(0),
+            Evaluation::OpponentCheckmate(0),
             hash_table,
             stop_flag,
             time_flag,

@@ -3,11 +3,19 @@ use std::cmp::Ordering;
 use super::Evaluation;
 
 impl Evaluation {
-    pub fn for_other_player(&self) -> Self {
+    pub fn for_opponent(&self) -> Self {
         match self {
             Evaluation::Material(mat) => Evaluation::Material(-mat),
-            Evaluation::PlayerCheckmate(plies) => Evaluation::OpponentCheckmate(plies + 1),
-            Evaluation::OpponentCheckmate(plies) => Evaluation::PlayerCheckmate(plies + 1),
+            Evaluation::PlayerCheckmate(plies) => Evaluation::OpponentCheckmate(*plies),
+            Evaluation::OpponentCheckmate(plies) => Evaluation::PlayerCheckmate(*plies),
+        }
+    }
+
+    pub fn previous_plie(&self) -> Self {
+        match self {
+            Evaluation::Material(mat) => Evaluation::Material(*mat),
+            Evaluation::PlayerCheckmate(plies) => Evaluation::PlayerCheckmate(plies + 1),
+            Evaluation::OpponentCheckmate(plies) => Evaluation::OpponentCheckmate(plies + 1),
         }
     }
 }
