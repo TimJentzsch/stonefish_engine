@@ -1,22 +1,21 @@
 use pleco::Board;
 
-use crate::stonefish::evaluation::evaluatable::Evaluatable;
-
-use super::{minimax::HashTable, Node};
+use super::{minimax::HashTable, Node, heuristic::move_order_heuristic};
 
 impl Node {
-    /// Create a new node with the heuristic evaluation.
+    /// Create a new node with move order heuristic.
     pub fn new(state: Board) -> Self {
-        let eval = state.heuristic();
+        let evaluation = move_order_heuristic(&state);
 
         Self {
             board: state,
-            evaluation: eval,
+            evaluation,
             children: None,
             size: 1,
             depth: 0,
         }
     }
+
 
     /// Create a new node.
     ///
@@ -28,7 +27,7 @@ impl Node {
         let evaluation = if let Some(&eval) = hash_table.get(&zobrist) {
             eval
         } else {
-            state.heuristic()
+            move_order_heuristic(&state)
         };
 
         Self {

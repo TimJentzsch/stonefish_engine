@@ -6,6 +6,7 @@ mod node;
 mod minimax;
 mod iterative_deepening;
 mod info;
+mod heuristic;
 
 /// A node of a search tree.
 pub struct Node {

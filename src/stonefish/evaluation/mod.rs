@@ -1,5 +1,4 @@
 mod evaluation;
-pub mod evaluatable;
 
 /// The evaluation of a given position.
 ///
