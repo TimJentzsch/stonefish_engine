@@ -43,7 +43,7 @@ impl Node {
     ///
     /// This will generate all children of this node.
     pub fn expand(&mut self, hash_table: &HashTable) -> Children {
-        let children: Children = self
+        let mut children: Children = self
             .board
             // Generate all possible moves
             .generate_moves()
@@ -58,6 +58,8 @@ impl Node {
                 Node::new_from_hash_table(new_state, hash_table)
             })
             .collect();
+        
+        children.sort();
 
         // Important: Keep attributes up-to-date
         self.update_attributes(&children);

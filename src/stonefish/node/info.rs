@@ -23,7 +23,7 @@ impl Node {
             depth = depth.max(child.depth + 1);
 
             best_child = if let Some(prev_best) = best_child {
-                if child.evaluation > prev_best.evaluation {
+                if child.evaluation.for_opponent().previous_plie() > prev_best.evaluation {
                     Some(child)
                 } else {
                     Some(prev_best)
@@ -35,12 +35,15 @@ impl Node {
 
         self.size = size;
         self.depth = depth;
-        
+
         if let Some(best_child) = best_child {
+            // The evaluation of the node is the evaluation of the best child
             self.evaluation = best_child.evaluation;
+            // The best line to play is the best child and its line
             let mv = best_child.board.last_move().unwrap();
             let mut best_line = best_child.best_line.clone();
             best_line.splice(0..0, [mv]);
+            self.best_line = best_line;
         } else {
             self.best_line = vec![];
         }
