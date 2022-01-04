@@ -32,14 +32,15 @@ impl Node {
         abort_flags.check()?;
 
         // Check if the value has been cached
-        // if let Some(cached_node) = hash_table.get(&zobrist) {
-        //     // Only use the cached value if it has sufficient depth
-        //     if cached_node.depth >= depth {
-        //         self.evaluation = cached_node.evaluation;
-        //         self.best_line = cached_node.best_line.clone();
-        //         return Ok(self.evaluation);
-        //     }
-        // }
+        if let Some(cached_node) = hash_table.get(&zobrist) {
+            assert_eq!(cached_node.board, self.board);
+            // Only use the cached value if it has sufficient depth
+            if cached_node.depth >= depth {
+                self.evaluation = cached_node.evaluation;
+                self.best_line = cached_node.best_line.clone();
+                return Ok(self.evaluation);
+            }
+        }
 
         // Expect the worst
         let mut cur_evaluation = Evaluation::OpponentCheckmate(0);
