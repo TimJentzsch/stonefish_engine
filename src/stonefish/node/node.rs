@@ -26,8 +26,8 @@ impl Node {
     pub fn new_from_hash_table(state: Board, hash_table: &HashTable) -> Self {
         let zobrist = state.zobrist();
         // Check if the hash table already has an entry for this position
-        let evaluation = if let Some(&eval) = hash_table.get(&zobrist) {
-            eval
+        let evaluation = if let Some(cached_node) = hash_table.get(&zobrist) {
+            cached_node.evaluation
         } else {
             heuristic(&state)
         };

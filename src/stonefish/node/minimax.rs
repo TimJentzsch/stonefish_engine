@@ -7,7 +7,7 @@ use crate::stonefish::{
 
 use super::Node;
 
-pub type HashTable = HashMap<u64, Evaluation>;
+pub type HashTable = HashMap<u64, Node>;
 
 impl Node {
     /// The implementation of minimax with alpha-beta-pruning.
@@ -25,7 +25,6 @@ impl Node {
         let zobrist = self.board.zobrist();
 
         if depth == 0 {
-            hash_table.insert(zobrist, self.evaluation);
             return Ok(self.evaluation);
         }
 
@@ -33,9 +32,10 @@ impl Node {
         abort_flags.check()?;
 
         // Check if the value has been cached
-        if let Some(&evaluation) = hash_table.get(&zobrist) {
-            self.evaluation = evaluation;
-            return Ok(evaluation);
+        if let Some(cached_node) = hash_table.get(&zobrist) {
+            self.evaluation = cached_node.evaluation;
+            self.best_line = cached_node.best_line.clone();
+            return Ok(self.evaluation);
         }
 
         // Expect the worst
@@ -47,7 +47,7 @@ impl Node {
 
         if children.len() == 0 {
             // There are no moves to play
-            hash_table.insert(zobrist, self.evaluation);
+            hash_table.insert(zobrist, self.clone());
             return Ok(self.evaluation);
         }
 
@@ -77,7 +77,7 @@ impl Node {
 
         // Keep depth and size up-to-date
         self.update_attributes(&children);
-        hash_table.insert(zobrist, cur_evaluation);
+        hash_table.insert(zobrist, self.clone());
         Ok(cur_evaluation)
     }
 
