@@ -106,11 +106,14 @@ impl UciEngine for Stonefish {
             // Search infinitely
             None
         } else if let Some(time_ms) = time {
-            // Take 5 seconds for each move
+            // Take 5 seconds reserve time for each move
             let base_time_ms: u64 = 5000.min(time_ms.try_into().unwrap());
             // Additionally use the increment time
             let increment_time_ms: u64 = increment.try_into().unwrap();
-            Some(Duration::from_millis(increment_time_ms + base_time_ms))
+            let mut total_time_ms = base_time_ms + increment_time_ms;
+            // Consider a delay of 100 ms and cap at 7 seconds
+            total_time_ms = total_time_ms.saturating_sub(100).min(7000);
+            Some(Duration::from_millis(total_time_ms))
         } else {
             // Search for 10 seconds
             Some(Duration::from_millis(10000))
