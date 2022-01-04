@@ -1,14 +1,13 @@
-use std::{collections::HashMap, sync::atomic::Ordering};
+use std::collections::HashMap;
 
-use crate::{stonefish::evaluation::Evaluation, uci::uci::StopFlag};
+use crate::stonefish::{
+    abort_flags::{AbortFlags, SearchAborted},
+    evaluation::Evaluation,
+};
 
 use super::Node;
 
 pub type HashTable = HashMap<u64, Evaluation>;
-
-/// The search has been aborted.
-#[derive(Debug, PartialEq)]
-pub struct StoppedSearch;
 
 impl Node {
     /// The implementation of minimax with alpha-beta-pruning.
@@ -21,9 +20,8 @@ impl Node {
         alpha: Evaluation,
         beta: Evaluation,
         hash_table: &mut HashTable,
-        stop_flag: StopFlag,
-        time_flag: StopFlag,
-    ) -> Result<Evaluation, StoppedSearch> {
+        abort_flags: AbortFlags,
+    ) -> Result<Evaluation, SearchAborted> {
         let zobrist = self.board.zobrist();
 
         if depth == 0 {
@@ -32,9 +30,7 @@ impl Node {
         }
 
         // Check if the search has been aborted
-        if stop_flag.load(Ordering::SeqCst) || time_flag.load(Ordering::SeqCst) {
-            return Err(StoppedSearch);
-        }
+        abort_flags.check()?;
 
         // Check if the value has been cached
         if let Some(&evaluation) = hash_table.get(&zobrist) {
@@ -59,14 +55,7 @@ impl Node {
         for child in &mut children {
             let child_eval = child
                 // We have to swap alpha and beta here, because it's the other player's turn
-                .minimax_helper(
-                    depth - 1,
-                    beta,
-                    alpha,
-                    hash_table,
-                    stop_flag.clone(),
-                    time_flag.clone(),
-                );
+                .minimax_helper(depth - 1, beta, alpha, hash_table, abort_flags.clone());
 
             // Check if the search has been aborted
             if let Err(err) = child_eval {
@@ -99,27 +88,24 @@ impl Node {
         &mut self,
         depth: usize,
         hash_table: &mut HashTable,
-        stop_flag: StopFlag,
-        time_flag: StopFlag,
-    ) -> Result<Evaluation, StoppedSearch> {
+        abort_flags: AbortFlags,
+    ) -> Result<Evaluation, SearchAborted> {
         self.minimax_helper(
             depth,
             Evaluation::OpponentCheckmate(0),
             Evaluation::OpponentCheckmate(0),
             hash_table,
-            stop_flag,
-            time_flag,
+            abort_flags,
         )
     }
 }
 
 #[cfg(test)]
 mod test {
-    use std::sync::{atomic::AtomicBool, Arc};
-
     use pleco::Board;
 
     use crate::stonefish::{
+        abort_flags::AbortFlags,
         evaluation::Evaluation,
         node::{minimax::HashTable, Node},
     };
@@ -129,12 +115,7 @@ mod test {
         // Mate in 1 (0 plies)
         let board = Board::from_fen("3Q1k2/5p1p/p3p2P/3p4/8/2Pq2P1/1P3PK1/8 b - - 2 37").unwrap();
         let mut node = Node::new(board);
-        let actual = node.minimax(
-            0,
-            &mut HashTable::new(),
-            Arc::new(AtomicBool::new(false)),
-            Arc::new(AtomicBool::new(false)),
-        );
+        let actual = node.minimax(0, &mut HashTable::new(), AbortFlags::new());
         let expected = Ok(Evaluation::OpponentCheckmate(0));
 
         assert_eq!(actual, expected);
@@ -145,12 +126,7 @@ mod test {
         // Mate in 1 (1 plie)
         let board = Board::from_fen("5k2/5p1p/p3p2P/3p2Q1/8/2Pq2P1/1P3PK1/8 w - - 1 37").unwrap();
         let mut node = Node::new(board);
-        let actual = node.minimax(
-            1,
-            &mut HashTable::new(),
-            Arc::new(AtomicBool::new(false)),
-            Arc::new(AtomicBool::new(false)),
-        );
+        let actual = node.minimax(1, &mut HashTable::new(), AbortFlags::new());
         let expected = Ok(Evaluation::PlayerCheckmate(1));
 
         assert_eq!(actual, expected);
@@ -161,12 +137,7 @@ mod test {
         // Mate in 2 (2 plies)
         let board = Board::from_fen("8/8/1r3p2/1p6/p5kR/2rB2P1/5P1K/8 b - - 21 47").unwrap();
         let mut node = Node::new(board);
-        let actual = node.minimax(
-            2,
-            &mut HashTable::new(),
-            Arc::new(AtomicBool::new(false)),
-            Arc::new(AtomicBool::new(false)),
-        );
+        let actual = node.minimax(2, &mut HashTable::new(), AbortFlags::new());
         let expected = Ok(Evaluation::OpponentCheckmate(2));
 
         assert_eq!(actual, expected);
@@ -177,12 +148,7 @@ mod test {
         // Mate in 2 (3 plies)
         let board = Board::from_fen("8/7R/1r3p2/1p6/p5k1/2rB2P1/5P1K/8 w - - 20 47").unwrap();
         let mut node = Node::new(board);
-        let actual = node.minimax(
-            3,
-            &mut HashTable::new(),
-            Arc::new(AtomicBool::new(false)),
-            Arc::new(AtomicBool::new(false)),
-        );
+        let actual = node.minimax(3, &mut HashTable::new(), AbortFlags::new());
         let expected = Ok(Evaluation::PlayerCheckmate(3));
 
         assert_eq!(actual, expected);
@@ -194,12 +160,7 @@ mod test {
         let board =
             Board::from_fen("6k1/pp4pp/4p3/3p4/1P1qn3/N3Q3/P2B2PP/2r3K1 w - - 0 21").unwrap();
         let mut node = Node::new(board);
-        let actual = node.minimax(
-            4,
-            &mut HashTable::new(),
-            Arc::new(AtomicBool::new(false)),
-            Arc::new(AtomicBool::new(false)),
-        );
+        let actual = node.minimax(4, &mut HashTable::new(), AbortFlags::new());
         let expected = Ok(Evaluation::OpponentCheckmate(4));
 
         assert_eq!(actual, expected);

@@ -1,13 +1,16 @@
 use std::{
     sync::{
         atomic::{AtomicBool, Ordering},
-        Arc, mpsc,
+        mpsc, Arc,
     },
     thread,
     time::{Duration, Instant},
 };
 
-use crate::{stonefish::evaluation::Evaluation, uci::uci::StopFlag};
+use crate::{
+    stonefish::{abort_flags::AbortFlags, evaluation::Evaluation},
+    uci::uci::AbortFlag,
+};
 
 use super::{minimax::HashTable, Node};
 
@@ -15,7 +18,7 @@ impl Node {
     /// Set a timer to abort the search.
     ///
     /// This function will set the time flag to true once the time runs out.
-    fn set_timer(max_time: Option<Duration>, time_flag: StopFlag) {
+    fn set_timer(max_time: Option<Duration>, time_flag: AbortFlag) {
         if let Some(max_time) = max_time {
             // Start a new thread so that we don't block the main thread
             thread::spawn(move || {
@@ -32,11 +35,11 @@ impl Node {
         &mut self,
         max_depth: Option<usize>,
         max_time: Option<Duration>,
-        stop_flag: StopFlag,
+        stop_flag: AbortFlag,
     ) -> Evaluation {
         let start = Instant::now();
         // When this flag is set to true, time has run out
-        let time_flag: StopFlag = Arc::new(AtomicBool::new(false));
+        let time_flag: AbortFlag = Arc::new(AtomicBool::new(false));
         Self::set_timer(max_time, time_flag.clone());
 
         let mut depth: usize = 1;
@@ -61,11 +64,10 @@ impl Node {
                 let mut child = child.clone();
 
                 let mut hash_table = HashTable::new();
-                let stop_flag = stop_flag.clone();
-                let time_flag = time_flag.clone();
+                let abort_flags = AbortFlags::from_flags(stop_flag.clone(), time_flag.clone());
 
                 thread::spawn(move || {
-                    let result = child.minimax(depth - 1, &mut hash_table, stop_flag, time_flag);
+                    let result = child.minimax(depth - 1, &mut hash_table, abort_flags);
                     tx.send((child, result)).unwrap();
                 });
             }

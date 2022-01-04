@@ -5,7 +5,7 @@ use pleco::Board;
 use crate::{
     stonefish::node::Node,
     uci::{
-        uci::{StopFlag, UciEngine},
+        uci::{AbortFlag, UciEngine},
         uci_command::{UciGoConfig, UciPosition},
         uci_option::{UciOption, UciOptionType},
     },
@@ -81,7 +81,7 @@ impl UciEngine for Stonefish {
         self.board = new_board;
     }
 
-    fn go(&mut self, go_config: UciGoConfig, stop_flag: StopFlag) {
+    fn go(&mut self, go_config: UciGoConfig, stop_flag: AbortFlag) {
         let start = Instant::now();
         let mut root = Node::new(self.board.clone());
 

@@ -7,7 +7,7 @@ use std::{io, sync, thread};
 use super::uci_command::{UciCommand, UciGoConfig, UciPosition};
 use super::uci_option::UciOption;
 
-pub type StopFlag = Arc<AtomicBool>;
+pub type AbortFlag = Arc<AtomicBool>;
 
 pub trait UciEngine {
     /// Create a new engine instance.
@@ -43,7 +43,7 @@ pub trait UciEngine {
     fn change_position(&mut self, _pos: UciPosition, _moves: Vec<String>) {}
 
     /// Start the search.
-    fn go(&mut self, _go_config: UciGoConfig, _stop_flag: StopFlag) {}
+    fn go(&mut self, _go_config: UciGoConfig, _stop_flag: AbortFlag) {}
 
     /// Stop calculating as soon as possible.
     fn stop(&mut self) {}
@@ -60,7 +60,7 @@ pub struct UciRunner;
 impl UciRunner {
     fn engine_loop<Engine: UciEngine>(
         thread: sync::mpsc::Receiver<UciCommand>,
-        stop_flag: StopFlag,
+        stop_flag: AbortFlag,
     ) {
         // Create a new instance of the engine
         let mut engine = Engine::new();
@@ -113,7 +113,7 @@ impl UciRunner {
         let (main_tx, main_rx) = sync::mpsc::channel();
 
         // A flag to indicate that the search should be stopped as soon as possible
-        let stop_flag: StopFlag = Arc::new(AtomicBool::new(false));
+        let stop_flag: AbortFlag = Arc::new(AtomicBool::new(false));
         let thread_stop_flag = stop_flag.clone();
 
         thread::Builder::new()
