@@ -11,6 +11,7 @@ mod info;
 mod heuristic;
 
 /// A node of a search tree.
+#[derive(Debug, Clone)]
 pub struct Node {
     /// The current board state.
     pub board: Board,

@@ -1,7 +1,7 @@
 use std::{
     sync::{
         atomic::{AtomicBool, Ordering},
-        Arc,
+        Arc, mpsc,
     },
     thread,
     time::{Duration, Instant},
@@ -9,7 +9,7 @@ use std::{
 
 use crate::{stonefish::evaluation::Evaluation, uci::uci::StopFlag};
 
-use super::{Node, minimax::HashTable};
+use super::{minimax::HashTable, Node};
 
 impl Node {
     /// Set a timer to abort the search.
@@ -51,19 +51,47 @@ impl Node {
                 }
             }
 
-            let mut hash_table = HashTable::new();
+            let (tx, rx) = mpsc::channel();
 
-            // Search at the current depth and update the evaluation
-            if let Ok(new_eval) = self.minimax(depth, &mut hash_table, stop_flag.clone(), time_flag.clone()) {
-                eval = new_eval;
-            } else {
-                // Abort the search
-                break;
+            let children = self.expand(&HashTable::new());
+
+            // Search every move in a separate thread
+            for child in &children {
+                let tx = tx.clone();
+                let mut child = child.clone();
+
+                let mut hash_table = HashTable::new();
+                let stop_flag = stop_flag.clone();
+                let time_flag = time_flag.clone();
+
+                thread::spawn(move || {
+                    let result = child.minimax(depth - 1, &mut hash_table, stop_flag, time_flag);
+                    tx.send((child, result)).unwrap();
+                });
             }
+
+            let mut updated_children = vec![];
+            let mut abort = false;
+
+            // Aggregate the results
+            for _ in &children {
+                let (child, result) = rx.recv().unwrap();
+                if result.is_err() {
+                    abort = true;
+                }
+                updated_children.push(child);
+            }
+
+            self.update_attributes(&updated_children);
+            eval = self.evaluation;
 
             // Update the GUI on the current evaluation
             self.send_info(start.elapsed());
             depth += 1;
+
+            if abort {
+                break;
+            }
         }
 
         eval
