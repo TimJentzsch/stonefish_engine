@@ -1,5 +1,7 @@
 use pleco::Board;
 
+use self::info::Line;
+
 use super::evaluation::Evaluation;
 
 mod node;
@@ -14,12 +16,8 @@ pub struct Node {
     pub board: Board,
     /// The current evaluation for this position.
     pub evaluation: Evaluation,
-    /// The children of this node.
-    /// 
-    /// They should always be sorted by their evaluation.
-    ///
-    /// This will be `None` if the node has not been expanded yet.
-    pub children: Option<Vec<Node>>,
+    /// The best line to play from this position.
+    pub best_line: Line,
     /// The current size of the tree.
     /// 
     /// This has to be kept up to date!

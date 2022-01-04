@@ -1,6 +1,6 @@
 use pleco::Board;
 
-use super::{minimax::HashTable, Node, heuristic::move_order_heuristic};
+use super::{minimax::HashTable, Node, heuristic::move_order_heuristic, info::Children};
 
 impl Node {
     /// Create a new node with move order heuristic.
@@ -10,7 +10,7 @@ impl Node {
         Self {
             board: state,
             evaluation,
-            children: None,
+            best_line: vec![],
             size: 1,
             depth: 0,
         }
@@ -33,7 +33,7 @@ impl Node {
         Self {
             board: state,
             evaluation,
-            children: None,
+            best_line: vec![],
             size: 1,
             depth: 0,
         }
@@ -42,8 +42,8 @@ impl Node {
     /// Expands this node.
     ///
     /// This will generate all children of this node.
-    pub fn expand(&mut self, hash_table: &HashTable) -> &mut Self {
-        let children: Vec<Node> = self
+    pub fn expand(&mut self, hash_table: &HashTable) -> Children {
+        let children: Children = self
             .board
             // Generate all possible moves
             .generate_moves()
@@ -60,10 +60,9 @@ impl Node {
             .collect();
 
         // Important: Keep attributes up-to-date
-        self.update_attributes();
-        self.children = Some(children);
-
-        self
+        self.update_attributes(&children);
+        
+        children
     }
 }
 

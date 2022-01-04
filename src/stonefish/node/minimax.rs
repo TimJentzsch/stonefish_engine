@@ -12,7 +12,7 @@ pub struct StoppedSearch;
 
 impl Node {
     /// The implementation of minimax with alpha-beta-pruning.
-    /// 
+    ///
     /// - `alpha`: Minimum value the current player is assured of
     /// - `beta`: Minimum value the opponent player is assured of
     fn minimax_helper(
@@ -42,57 +42,52 @@ impl Node {
             return Ok(evaluation);
         }
 
-        // Expand the node if necessary
-        if let None = self.children {
-            self.expand(hash_table);
-        }
-
         // Expect the worst
         let mut cur_evaluation = Evaluation::OpponentCheckmate(0);
         let mut alpha = alpha;
 
-        if let Some(children) = &mut self.children {
-            if children.len() == 0 {
-                // There are no moves to play
-                hash_table.insert(zobrist, self.evaluation);
-                return Ok(self.evaluation);
+        // Expand the node
+        let mut children = self.expand(hash_table);
+
+        if children.len() == 0 {
+            // There are no moves to play
+            hash_table.insert(zobrist, self.evaluation);
+            return Ok(self.evaluation);
+        }
+
+        // Search through all moves to find the best option
+        for child in &mut children {
+            let child_eval = child
+                // We have to swap alpha and beta here, because it's the other player's turn
+                .minimax_helper(
+                    depth - 1,
+                    beta,
+                    alpha,
+                    hash_table,
+                    stop_flag.clone(),
+                    time_flag.clone(),
+                );
+
+            // Check if the search has been aborted
+            if let Err(err) = child_eval {
+                self.update_attributes(&children);
+                return Err(err);
             }
 
-            // Search through all moves to find the best option
-            for child in children {
-                let child_eval = child
-                    // We have to swap alpha and beta here, because it's the other player's turn
-                    .minimax_helper(
-                        depth - 1,
-                        beta,
-                        alpha,
-                        hash_table,
-                        stop_flag.clone(),
-                        time_flag.clone(),
-                    );
+            // Convert the evaluation to this player's point of view and take the best value
+            cur_evaluation = cur_evaluation.max(child_eval.unwrap().for_opponent().previous_plie());
 
-                // Check if the search has been aborted
-                if let Err(err) = child_eval {
-                    self.update_attributes();
-                    return Err(err);
-                }
-
-                // Convert the evaluation to this player's point of view and take the best value
-                cur_evaluation = cur_evaluation.max(child_eval.unwrap().for_opponent().previous_plie());
-
-                if cur_evaluation.for_opponent() <= beta {
-                    // The opponent has a better option in another branch, they won't choose this one
-                    break;
-                }
-
-                // Update what our current best option is
-                alpha = alpha.max(cur_evaluation);
+            if cur_evaluation.for_opponent() <= beta {
+                // The opponent has a better option in another branch, they won't choose this one
+                break;
             }
+
+            // Update what our current best option is
+            alpha = alpha.max(cur_evaluation);
         }
 
         // Keep depth and size up-to-date
-        self.update_attributes();
-        self.evaluation = cur_evaluation;
+        self.update_attributes(&children);
         hash_table.insert(zobrist, cur_evaluation);
         Ok(cur_evaluation)
     }
@@ -124,7 +119,10 @@ mod test {
 
     use pleco::Board;
 
-    use crate::stonefish::{evaluation::Evaluation, node::{Node, minimax::HashTable}};
+    use crate::stonefish::{
+        evaluation::Evaluation,
+        node::{minimax::HashTable, Node},
+    };
 
     #[test]
     fn should_find_mate_in_one_opponent() {
