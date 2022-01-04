@@ -1,11 +1,13 @@
 use pleco::Board;
 
-use super::{minimax::HashTable, Node, heuristic::move_order_heuristic, info::Children};
+use crate::stonefish::heuristic::heuristic;
+
+use super::{minimax::HashTable, Node, info::Children};
 
 impl Node {
     /// Create a new node with move order heuristic.
     pub fn new(state: Board) -> Self {
-        let evaluation = move_order_heuristic(&state);
+        let evaluation = heuristic(&state);
 
         Self {
             board: state,
@@ -27,7 +29,7 @@ impl Node {
         let evaluation = if let Some(&eval) = hash_table.get(&zobrist) {
             eval
         } else {
-            move_order_heuristic(&state)
+            heuristic(&state)
         };
 
         Self {
