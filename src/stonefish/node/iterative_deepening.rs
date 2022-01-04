@@ -61,8 +61,6 @@ impl Node {
                 break;
             }
 
-            println!("info string Hash size: {}", hash_table.len());
-
             // Update the GUI on the current evaluation
             self.send_info(start.elapsed());
             depth += 1;
