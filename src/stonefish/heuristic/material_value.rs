@@ -29,8 +29,8 @@ fn player_material_value(board: &Board, player: Player) -> i32 {
 ///
 /// Returns a positive value for a material advantage.
 pub fn material_value(board: &Board) -> i32 {
-    let player_mat = player_material_value(&board, board.turn());
-    let opponent_mat = player_material_value(&board, board.turn().other_player());
+    let player_mat = player_material_value(board, board.turn());
+    let opponent_mat = player_material_value(board, board.turn().other_player());
 
     player_mat - opponent_mat
 }

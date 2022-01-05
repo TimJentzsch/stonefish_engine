@@ -73,7 +73,7 @@ impl UciCommand {
     /// Determine if the string is a move in long algebraic notation.
     fn is_move(move_str: &str) -> bool {
         let move_regex = regex::Regex::new(r"^((([a-h][1-8]){2}[bnrq]?)|(0000))$").unwrap();
-        return move_regex.is_match(move_str);
+        move_regex.is_match(move_str)
     }
 
     /// Try to parse the contents of a UCI position command.
@@ -111,7 +111,7 @@ impl UciCommand {
             if let Some(move_token) = tokens.next() {
                 if move_token == "moves" {
                     // Add all given moves
-                    while let Some(move_str) = tokens.next() {
+                    for move_str in tokens {
                         moves.push(move_str.to_owned());
                     }
                 }
@@ -120,7 +120,7 @@ impl UciCommand {
             return UciCommand::Position(pos, moves);
         }
 
-        return UciCommand::Unknown(line.to_owned());
+        UciCommand::Unknown(line.to_owned())
     }
 
     /// Try to parse the contents of a UCI go command.
@@ -263,12 +263,12 @@ impl UciCommand {
 
     /// Try to parse the contents of a UCI go command.
     fn try_parse_debug(debug_str: &str) -> Self {
-        let mut tokens = debug_str.split_whitespace();
+        let tokens = debug_str.split_whitespace();
 
         // Set the default values
         let mut debug = false;
 
-        while let Some(option_token) = tokens.next() {
+        for option_token in tokens {
             match option_token {
                 "on" => debug = true,
                 "off" => debug = false,

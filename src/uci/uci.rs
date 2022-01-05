@@ -123,30 +123,28 @@ impl UciRunner {
             .unwrap();
 
         // Wait for new commands. Every command is a new line
-        for line in lock.lines() {
-            if let Ok(line_str) = line {
-                // Parse the UCI command
-                let cmd = UciCommand::from(line_str.as_str());
-                match cmd {
-                    // Quit the program
-                    UciCommand::Quit => return,
-                    // Stop the search as soon as possible
-                    UciCommand::Stop => {
-                        // Set the stop flag so that calculations can be stopped
-                        stop_flag.store(true, Ordering::SeqCst);
-                        // Send the stop command
-                        main_tx.send(cmd).unwrap();
-                    }
-                    UciCommand::Go(_) => {
-                        // Unset the stop flag so that calculations can be made
-                        stop_flag.store(false, Ordering::SeqCst);
-                        // Send the go command
-                        main_tx.send(cmd).unwrap();
-                    }
-                    // Propagate commands to the engine
-                    cmd => {
-                        main_tx.send(cmd).unwrap();
-                    }
+        for line_str in lock.lines().flatten() {
+            // Parse the UCI command
+            let cmd = UciCommand::from(line_str.as_str());
+            match cmd {
+                // Quit the program
+                UciCommand::Quit => return,
+                // Stop the search as soon as possible
+                UciCommand::Stop => {
+                    // Set the stop flag so that calculations can be stopped
+                    stop_flag.store(true, Ordering::SeqCst);
+                    // Send the stop command
+                    main_tx.send(cmd).unwrap();
+                }
+                UciCommand::Go(_) => {
+                    // Unset the stop flag so that calculations can be made
+                    stop_flag.store(false, Ordering::SeqCst);
+                    // Send the go command
+                    main_tx.send(cmd).unwrap();
+                }
+                // Propagate commands to the engine
+                cmd => {
+                    main_tx.send(cmd).unwrap();
                 }
             }
         }

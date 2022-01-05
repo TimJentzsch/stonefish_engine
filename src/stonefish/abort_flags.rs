@@ -38,10 +38,10 @@ impl AbortFlags {
     /// Check if the search has been aborted.
     pub fn check(&self) -> Result<(), SearchAborted> {
         // Check if the search has been aborted
-        return if self.stop_flag.load(Ordering::SeqCst) || self.time_flag.load(Ordering::SeqCst) {
+        if self.stop_flag.load(Ordering::SeqCst) || self.time_flag.load(Ordering::SeqCst) {
             Err(SearchAborted)
         } else {
             Ok(())
-        };
+        }
     }
 }

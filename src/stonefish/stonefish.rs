@@ -87,12 +87,10 @@ impl UciEngine for Stonefish {
         // Determine search depth if one is given
         let max_depth = if let Some(max_depth) = go_config.max_depth {
             Some(max_depth)
-        } else if let Some(search_mate) = go_config.search_mate {
-            Some(search_mate)
         } else {
-            None
+            go_config.search_mate
         };
-
+        
         // Determine player time and increment
         let (time, increment) = match root.board.turn() {
             pleco::Player::White => (go_config.white_time_ms, go_config.white_increment_ms),

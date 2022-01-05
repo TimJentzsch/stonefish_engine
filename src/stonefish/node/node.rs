@@ -86,9 +86,6 @@ impl Eq for Node {}
 
 impl PartialEq for Node {
     fn eq(&self, other: &Self) -> bool {
-        match self.cmp(other) {
-            std::cmp::Ordering::Equal => true,
-            _ => false,
-        }
+        matches!(self.cmp(other), std::cmp::Ordering::Equal)
     }
 }

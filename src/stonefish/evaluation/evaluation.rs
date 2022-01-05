@@ -60,10 +60,7 @@ impl Eq for Evaluation {}
 
 impl PartialEq for Evaluation {
     fn eq(&self, other: &Self) -> bool {
-        match self.cmp(other) {
-            Ordering::Equal => true,
-            _ => false,
-        }
+        matches!(self.cmp(other), Ordering::Equal)
     }
 }
 

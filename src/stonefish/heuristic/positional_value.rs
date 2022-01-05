@@ -21,7 +21,7 @@ fn player_guards(board: &Board, player: Player) -> Vec<Guard> {
 
     for (sq, piece) in piece_locations {
         // Only consider pieces of the current player
-        if piece.player().unwrap_or(player.other_player()) != player {
+        if piece.player().unwrap_or_else(|| player.other_player()) != player {
             continue;
         }
 

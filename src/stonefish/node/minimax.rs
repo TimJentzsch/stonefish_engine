@@ -33,7 +33,6 @@ impl Node {
 
         // Check if the value has been cached
         if let Some(cached_node) = hash_table.get(&zobrist) {
-            assert_eq!(cached_node.board, self.board);
             // Only use the cached value if it has sufficient depth
             if cached_node.depth >= depth {
                 self.evaluation = cached_node.evaluation;
@@ -49,7 +48,7 @@ impl Node {
         // Expand the node
         let mut children = self.expand(hash_table);
 
-        if children.len() == 0 {
+        if children.is_empty() {
             // There are no moves to play
             hash_table.insert(zobrist, self.clone());
             return Ok(self.evaluation);
