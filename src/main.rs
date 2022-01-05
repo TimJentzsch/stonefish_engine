@@ -1,5 +1,5 @@
 #![feature(str_split_whitespace_as_str)]
-use stonefish::stonefish::Stonefish;
+use stonefish::Stonefish;
 use uci::UciRunner;
 
 mod stonefish;
