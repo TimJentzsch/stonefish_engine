@@ -1,6 +1,6 @@
 #![feature(str_split_whitespace_as_str)]
 use stonefish::stonefish::Stonefish;
-use uci::uci::UciRunner;
+use uci::UciRunner;
 
 mod stonefish;
 mod uci;

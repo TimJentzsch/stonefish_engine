@@ -9,7 +9,7 @@ use std::{
 
 use crate::{
     stonefish::{abort_flags::AbortFlags, evaluation::Evaluation},
-    uci::uci::AbortFlag,
+    uci::AbortFlag,
 };
 
 use super::{minimax::HashTable, Node};

@@ -5,9 +5,9 @@ use pleco::Board;
 use crate::{
     stonefish::node::Node,
     uci::{
-        uci::{AbortFlag, UciEngine},
         uci_command::{UciGoConfig, UciPosition},
         uci_option::{UciOption, UciOptionType},
+        AbortFlag, UciEngine,
     },
 };
 
@@ -90,7 +90,7 @@ impl UciEngine for Stonefish {
         } else {
             go_config.search_mate
         };
-        
+
         // Determine player time and increment
         let (time, increment) = match root.board.turn() {
             pleco::Player::White => (go_config.white_time_ms, go_config.white_increment_ms),

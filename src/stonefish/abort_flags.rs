@@ -3,7 +3,7 @@ use std::sync::{
     Arc,
 };
 
-use crate::uci::uci::AbortFlag;
+use crate::uci::AbortFlag;
 
 /// The search has been aborted.
 #[derive(Debug, PartialEq)]
