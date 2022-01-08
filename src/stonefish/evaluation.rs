@@ -6,7 +6,7 @@ pub enum Evaluation {
     /// A material evaluation in centipawns.
     ///
     /// Negative numbers are an advantage for the opponent, positive numbers an advantage for the current player.
-    Material(i32),
+    Centipawns(i32),
     /// The current player can give checkmate in the given number of plies.
     PlayerCheckmate(usize),
     /// The opponent can give checkmate in the given number of plies.
@@ -15,17 +15,30 @@ pub enum Evaluation {
 use std::cmp::Ordering;
 
 impl Evaluation {
+    /// Determine if the evaluation is a forced checkmate.
+    pub fn is_forced_mate(&self) -> bool {
+        !matches!(self, &Evaluation::Centipawns(_))
+    }
+
+    /// Convert the evaluation to the view of the opponent.
     pub fn for_opponent(&self) -> Self {
         match self {
-            Evaluation::Material(mat) => Evaluation::Material(-mat),
+            Evaluation::Centipawns(mat) => Evaluation::Centipawns(-mat),
             Evaluation::PlayerCheckmate(plies) => Evaluation::OpponentCheckmate(*plies),
             Evaluation::OpponentCheckmate(plies) => Evaluation::PlayerCheckmate(*plies),
         }
     }
 
+    /// Convert the evaluation to the previous plie.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// assert_eq!(Evaluation::PlayerCheckmate(3).previous_plie(), Evaluation::PlayerCheckmate(4));
+    /// ```
     pub fn previous_plie(&self) -> Self {
         match self {
-            Evaluation::Material(mat) => Evaluation::Material(*mat),
+            Evaluation::Centipawns(mat) => Evaluation::Centipawns(*mat),
             Evaluation::PlayerCheckmate(plies) => Evaluation::PlayerCheckmate(plies + 1),
             Evaluation::OpponentCheckmate(plies) => Evaluation::OpponentCheckmate(plies + 1),
         }
@@ -36,9 +49,9 @@ impl Ord for Evaluation {
     /// Good evaluations for the current player are bigger.
     fn cmp(&self, other: &Self) -> Ordering {
         match self {
-            Evaluation::Material(mat_a) => match other {
+            Evaluation::Centipawns(mat_a) => match other {
                 // Prefer positive material score (advantage for the player)
-                Evaluation::Material(mat_b) => mat_a.cmp(mat_b),
+                Evaluation::Centipawns(mat_b) => mat_a.cmp(mat_b),
                 Evaluation::PlayerCheckmate(_) => Ordering::Less,
                 Evaluation::OpponentCheckmate(_) => Ordering::Greater,
             },
@@ -83,9 +96,57 @@ mod tests {
     use super::Evaluation;
 
     #[test]
+    fn should_recognize_forced_mate() {
+        assert!(Evaluation::PlayerCheckmate(3).is_forced_mate());
+        assert!(Evaluation::OpponentCheckmate(3).is_forced_mate());
+        assert_eq!(Evaluation::Centipawns(100).is_forced_mate(), false);
+        assert_eq!(Evaluation::Centipawns(-100).is_forced_mate(), false);
+    }
+
+    #[test]
+    fn should_convert_to_opponent_view() {
+        assert_eq!(
+            Evaluation::PlayerCheckmate(3).for_opponent(),
+            Evaluation::OpponentCheckmate(3)
+        );
+        assert_eq!(
+            Evaluation::OpponentCheckmate(3).for_opponent(),
+            Evaluation::PlayerCheckmate(3)
+        );
+        assert_eq!(
+            Evaluation::Centipawns(100).for_opponent(),
+            Evaluation::Centipawns(-100)
+        );
+        assert_eq!(
+            Evaluation::Centipawns(-100).for_opponent(),
+            Evaluation::Centipawns(100)
+        );
+        assert_eq!(
+            Evaluation::Centipawns(0).for_opponent(),
+            Evaluation::Centipawns(0)
+        );
+    }
+
+    #[test]
+    fn should_convert_to_previous_plie() {
+        assert_eq!(
+            Evaluation::PlayerCheckmate(3).previous_plie(),
+            Evaluation::PlayerCheckmate(4)
+        );
+        assert_eq!(
+            Evaluation::OpponentCheckmate(3).previous_plie(),
+            Evaluation::OpponentCheckmate(4)
+        );
+        assert_eq!(
+            Evaluation::Centipawns(100).previous_plie(),
+            Evaluation::Centipawns(100)
+        );
+    }
+
+    #[test]
     fn should_compare_material_values() {
-        let bad_eval = Evaluation::Material(-6);
-        let good_eval = Evaluation::Material(6);
+        let bad_eval = Evaluation::Centipawns(-6);
+        let good_eval = Evaluation::Centipawns(6);
 
         assert_eq!(good_eval.cmp(&bad_eval), Ordering::Greater);
         assert_eq!(bad_eval.cmp(&good_eval), Ordering::Less);
@@ -121,7 +182,7 @@ mod tests {
     #[test]
     fn should_compare_player_checkmate_with_material_value() {
         let checkmate = Evaluation::PlayerCheckmate(10);
-        let eval = Evaluation::Material(100);
+        let eval = Evaluation::Centipawns(100);
 
         assert_eq!(checkmate.cmp(&eval), Ordering::Greater);
         assert_eq!(eval.cmp(&checkmate), Ordering::Less);
@@ -130,7 +191,7 @@ mod tests {
     #[test]
     fn should_compare_opponent_checkmate_with_material_value() {
         let checkmate = Evaluation::OpponentCheckmate(10);
-        let eval = Evaluation::Material(100);
+        let eval = Evaluation::Centipawns(100);
 
         assert_eq!(eval.cmp(&checkmate), Ordering::Greater);
         assert_eq!(checkmate.cmp(&eval), Ordering::Less);

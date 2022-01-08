@@ -15,7 +15,7 @@ pub fn heuristic(board: &Board) -> Evaluation {
         let pos_value = positional_value::positional_value(board);
         let value = mat_value + pos_value;
 
-        Evaluation::Material(value)
+        Evaluation::Centipawns(value)
     }
 }
 
@@ -28,7 +28,7 @@ mod tests {
     #[test]
     fn should_evaluate_start_position() {
         let board = Board::start_pos();
-        let expected = Evaluation::Material(0);
+        let expected = Evaluation::Centipawns(0);
         let actual = heuristic(&board);
 
         assert_eq!(actual, expected);
