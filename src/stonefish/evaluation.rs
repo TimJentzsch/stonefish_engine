@@ -16,6 +16,7 @@ use std::cmp::Ordering;
 
 impl Evaluation {
     /// Determine if the evaluation is a forced checkmate.
+    #[allow(dead_code)]
     pub fn is_forced_mate(&self) -> bool {
         !matches!(self, &Evaluation::Centipawns(_))
     }

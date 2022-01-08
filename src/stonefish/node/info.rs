@@ -35,8 +35,6 @@ impl Node {
             }
         }
 
-        // debug_assert!(size >= self.size);
-        // debug_assert!(depth >= self.depth);
         self.size = size;
         self.depth = depth;
 
@@ -47,8 +45,6 @@ impl Node {
             let mv = best_child.board.last_move().unwrap();
             let mut best_line = best_child.best_line.clone();
             best_line.splice(0..0, [mv]);
-
-            // debug_assert!(self.evaluation.is_forced_mate() || best_line.len() == depth);
 
             self.best_line = best_line;
         } else {
