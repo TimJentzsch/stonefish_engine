@@ -1,4 +1,4 @@
-use pleco::{Board, Piece, Player, SQ};
+use pleco::{BitBoard, Board, Piece, PieceType, Player, SQ};
 
 use super::material_value::get_piece_value;
 
@@ -36,10 +36,84 @@ fn player_guards(board: &Board, player: Player) -> Vec<Guard> {
     guards
 }
 
+/// Generate a bitboard for the board borders.
+#[inline]
+fn get_border_bb() -> BitBoard {
+    return BitBoard::FILE_A | BitBoard::FILE_H | BitBoard::RANK_1 | BitBoard::RANK_8;
+}
+
+/// Counts the number of pieces at the borders of the board.
+fn count_border_pieces(piece_bb: BitBoard) -> u8 {
+    (get_border_bb() & piece_bb).count_bits()
+}
+
+/// Evaluate the position of the king.
+fn player_king_position(board: &Board, player: Player) -> i32 {
+    let castle_bb = match player {
+        Player::White => SQ::G1.to_bb() | SQ::C1.to_bb(),
+        Player::Black => SQ::G8.to_bb() | SQ::C8.to_bb(),
+    };
+    let king_bb = board.piece_bb(player, PieceType::K);
+
+    // Give points if the king is on a castling square
+    if (king_bb & castle_bb).is_empty() {
+        0
+    } else {
+        50
+    }
+}
+
+/// Evaluate the position of the knights.
+fn player_knight_position(board: &Board, player: Player) -> i32 {
+    let knight_bb = board.piece_bb(player, PieceType::N);
+
+    // Avoid having knights on the borders
+    return count_border_pieces(knight_bb) as i32 * -30;
+}
+
+/// Evaluate the position of the pawns.
+fn player_pawn_position(_board: &Board, _player: Player) -> i32 {
+    0
+}
+
+/// Evaluate the position of the bishops.
+fn player_bishop_position(board: &Board, player: Player) -> i32 {
+    let bishop_bb = board.piece_bb(player, PieceType::B);
+
+    // Avoid having bishops on the borders
+    return count_border_pieces(bishop_bb) as i32 * -10;
+}
+
+/// Evaluate the position of the rooks.
+fn player_rook_position(board: &Board, player: Player) -> i32 {
+    let rook_bb = board.piece_bb(player, PieceType::R);
+
+    // Avoid having rooks on the borders
+    return count_border_pieces(rook_bb) as i32 * -5;
+}
+
+/// Evaluate the position of the queens.
+fn player_queen_position(board: &Board, player: Player) -> i32 {
+    let queen_bb = board.piece_bb(player, PieceType::Q);
+
+    // Avoid having queens on the borders
+    return count_border_pieces(queen_bb) as i32 * -10;
+}
+
+/// The total piece position for the player.
+fn player_piece_position(board: &Board, player: Player) -> i32 {
+    player_king_position(board, player)
+        + player_pawn_position(board, player)
+        + player_knight_position(board, player)
+        + player_bishop_position(board, player)
+        + player_rook_position(board, player)
+        + player_queen_position(board, player)
+}
+
 /// Calculate the positional value for the current player.
 fn player_positional_value(board: &Board, player: Player) -> i32 {
-    let mut value = 0;
-    
+    let mut value = player_piece_position(board, player);
+
     let guards = player_guards(board, player);
 
     for guard in guards {
