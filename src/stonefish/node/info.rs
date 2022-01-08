@@ -23,7 +23,9 @@ impl Node {
             depth = depth.max(child.depth + 1);
 
             best_child = if let Some(prev_best) = best_child {
-                if child.evaluation.for_opponent().previous_plie() > prev_best.evaluation {
+                if child.evaluation.for_opponent().previous_plie()
+                    > prev_best.evaluation.for_opponent().previous_plie()
+                {
                     Some(child)
                 } else {
                     Some(prev_best)
@@ -33,16 +35,21 @@ impl Node {
             }
         }
 
+        // debug_assert!(size >= self.size);
+        // debug_assert!(depth >= self.depth);
         self.size = size;
         self.depth = depth;
 
         if let Some(best_child) = best_child {
             // The evaluation of the node is the evaluation of the best child
-            self.evaluation = best_child.evaluation;
+            self.evaluation = best_child.evaluation.for_opponent().previous_plie();
             // The best line to play is the best child and its line
             let mv = best_child.board.last_move().unwrap();
             let mut best_line = best_child.best_line.clone();
             best_line.splice(0..0, [mv]);
+
+            // debug_assert!(self.evaluation.is_forced_mate() || best_line.len() == depth);
+
             self.best_line = best_line;
         } else {
             self.best_line = vec![];
@@ -102,5 +109,80 @@ impl Node {
             // Pv
             Self::format_line(&self.best_line),
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use pleco::Board;
+
+    use crate::stonefish::{
+        evaluation::Evaluation,
+        node::{minimax::HashTable, Node},
+    };
+
+    #[test]
+    fn should_update_attributes_startpos() {
+        let mut startpos = Node::new(Board::start_pos());
+
+        assert_eq!(startpos.size, 1);
+        assert_eq!(startpos.depth, 0);
+        assert_eq!(startpos.best_line.len(), 0);
+
+        let children = startpos.expand(&HashTable::new());
+
+        for child in children {
+            assert_eq!(child.size, 1);
+            assert_eq!(child.depth, 0);
+            assert_eq!(child.best_line.len(), 0);
+        }
+
+        // 20 moves are possible, plus the root node
+        assert_eq!(startpos.size, 21);
+        assert_eq!(startpos.depth, 1);
+        assert_eq!(startpos.best_line.len(), 1);
+    }
+
+    #[test]
+    fn should_update_attributes_forced_mate_0() {
+        let mut pos = Node::new(
+            Board::from_fen("1Nb4r/p2p3p/kb1P3n/3Q4/N3Pp2/8/P1P3PP/7K b - - 0 2").unwrap(),
+        );
+
+        assert_eq!(pos.size, 1);
+        assert_eq!(pos.depth, 0);
+        assert_eq!(pos.best_line.len(), 0);
+        assert_eq!(pos.evaluation, Evaluation::OpponentCheckmate(0));
+
+        let children = pos.expand(&HashTable::new());
+        assert_eq!(children.len(), 0);
+
+        assert_eq!(pos.depth, 0);
+        assert_eq!(pos.best_line.len(), 0);
+        assert_eq!(pos.evaluation, Evaluation::OpponentCheckmate(0));
+    }
+
+    #[test]
+    fn should_update_attributes_forced_mate_1() {
+        let mut pos = Node::new(
+            Board::from_fen("1rb4r/p1Pp3p/kb1P3n/3Q4/N3Pp2/8/P1P3PP/7K w - - 3 2").unwrap(),
+        );
+
+        assert_eq!(pos.size, 1);
+        assert_eq!(pos.depth, 0);
+        assert_eq!(pos.best_line.len(), 0);
+        assert!(!pos.evaluation.is_forced_mate());
+
+        let children = pos.expand(&HashTable::new());
+
+        for child in children {
+            assert_eq!(child.size, 1);
+            assert_eq!(child.depth, 0);
+            assert_eq!(child.best_line.len(), 0);
+        }
+
+        assert_eq!(pos.depth, 1);
+        assert_eq!(pos.best_line.len(), 1);
+        assert_eq!(pos.evaluation, Evaluation::PlayerCheckmate(1));
     }
 }

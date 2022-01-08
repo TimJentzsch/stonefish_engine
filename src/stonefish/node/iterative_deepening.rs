@@ -56,7 +56,7 @@ impl Node {
 
             let (tx, rx) = mpsc::channel();
 
-            let children = self.expand(&HashTable::new());
+            let children = self.reset().expand(&HashTable::new());
 
             // Search every move in a separate thread
             for child in &children {
@@ -66,10 +66,13 @@ impl Node {
                 let mut hash_table = HashTable::new();
                 let abort_flags = AbortFlags::from_flags(stop_flag.clone(), time_flag.clone());
 
-                thread::spawn(move || {
-                    let result = child.minimax(depth - 1, &mut hash_table, abort_flags);
-                    tx.send((child, result)).unwrap();
-                });
+                thread::Builder::new()
+                    .name(child.board.last_move().unwrap().stringify())
+                    .spawn(move || {
+                        let result = child.minimax(depth - 1, &mut hash_table, abort_flags);
+                        tx.send((child, result)).unwrap();
+                    })
+                    .unwrap();
             }
 
             let mut updated_children = vec![];

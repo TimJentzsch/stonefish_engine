@@ -53,7 +53,7 @@ impl Node {
         let zobrist = state.zobrist();
         // Check if the hash table already has an entry for this position
         let evaluation = if let Some(cached_node) = hash_table.get(&zobrist) {
-            cached_node.evaluation
+            return cached_node.clone();
         } else {
             heuristic(&state)
         };
@@ -65,6 +65,15 @@ impl Node {
             size: 1,
             depth: 0,
         }
+    }
+
+    /// Reset the evaluation of the node.
+    pub fn reset(&mut self) -> &mut Self {
+        self.evaluation = heuristic(&self.board);
+        self.depth = 0;
+        self.size = 0;
+        self.best_line = vec![];
+        self
     }
 
     /// Expands this node.
@@ -81,6 +90,8 @@ impl Node {
                 // Play the move on a new board
                 let mut new_state = self.board.clone();
                 new_state.apply_move(*mv);
+                debug_assert!(new_state.turn() != self.board.turn());
+
                 // Create a new node with the standard evaluation
                 // The next node will have the view of the opponent
                 Node::new_from_hash_table(new_state, hash_table)

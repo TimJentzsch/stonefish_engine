@@ -37,6 +37,8 @@ impl Node {
             if cached_node.depth >= depth {
                 self.evaluation = cached_node.evaluation;
                 self.best_line = cached_node.best_line.clone();
+                self.depth = cached_node.depth;
+                self.size = cached_node.size;
                 return Ok(self.evaluation);
             }
         }
@@ -50,7 +52,6 @@ impl Node {
 
         if children.is_empty() {
             // There are no moves to play
-            hash_table.insert(zobrist, self.clone());
             return Ok(self.evaluation);
         }
 
