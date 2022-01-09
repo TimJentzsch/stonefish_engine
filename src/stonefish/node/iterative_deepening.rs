@@ -94,7 +94,11 @@ impl Node {
             self.send_info(start.elapsed());
             depth += 1;
 
-            if abort {
+            // If the time is limited and there is a forced mate, just play it out
+            let play_forced_mate =
+                self.evaluation.is_forced_mate() && (max_depth.is_some() || max_time.is_some());
+
+            if abort || play_forced_mate {
                 break;
             }
         }
