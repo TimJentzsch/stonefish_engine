@@ -44,8 +44,6 @@ impl Node {
 
         let mut depth: usize = 1;
 
-        let mut eval = self.evaluation;
-
         // Search at higher and higher depths
         loop {
             if let Some(max_depth) = max_depth {
@@ -56,7 +54,8 @@ impl Node {
 
             let (tx, rx) = mpsc::channel();
 
-            let children = self.reset().expand(&HashTable::new());
+            let mut node = self.clone();
+            let children = node.reset().expand(&HashTable::new());
 
             // Search every move in a separate thread
             for child in &children {
@@ -87,8 +86,11 @@ impl Node {
                 updated_children.push(child);
             }
 
-            self.update_attributes(&updated_children);
-            eval = self.evaluation;
+            if !abort {
+                // Update the node with the new evaluation
+                node.update_attributes(&updated_children);
+                self.copy_values(&node);
+            }
 
             // Update the GUI on the current evaluation
             self.send_info(start.elapsed());
@@ -103,7 +105,7 @@ impl Node {
             }
         }
 
-        eval
+        self.evaluation
     }
 }
 

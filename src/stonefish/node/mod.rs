@@ -50,6 +50,16 @@ impl Node {
         }
     }
 
+    /// Copy the values from another node.
+    pub fn copy_values(&mut self, other: &Node) {
+        self.board = other.board.clone();
+        self.evaluation = other.evaluation;
+        self.best_line = other.best_line.clone();
+        self.size = other.size;
+        self.depth = other.depth;
+        self.sel_depth = other.sel_depth;
+    }
+
     /// Create a new node.
     ///
     /// If the state is already available in the hash table, it is taken as evaluation.
