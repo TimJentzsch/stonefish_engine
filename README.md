@@ -48,7 +48,8 @@ You will then find the compiled program in `stonefish_engine/target/release`.
 
 - Supports the [Universal Chess Interface](https://backscattering.de/chess/uci/) (UCI).
 - [Minimax](https://en.wikipedia.org/wiki/Minimax) search with [alpha–beta pruning](https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning) and [iterative deepening](https://en.wikipedia.org/wiki/Iterative_deepening_depth-first_search).
-- Heuristic evaluation of material value.
+- Multi-threaded search.
+- Heuristic evaluation of material value and piece position.
 
 ## Resources
 
