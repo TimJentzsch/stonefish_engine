@@ -21,10 +21,14 @@ pub struct Node {
     ///
     /// This has to be kept up to date!
     pub size: usize,
-    /// The current depth of the tree.
+    /// The current minimum depth of the tree.
     ///
     /// This has to be kept up to date!
     pub depth: usize,
+    /// The current maximum depth of the tree.
+    ///
+    /// This has to be kept up to date!
+    pub sel_depth: usize,
 }
 
 use crate::stonefish::heuristic::heuristic;
@@ -42,6 +46,7 @@ impl Node {
             best_line: vec![],
             size: 1,
             depth: 0,
+            sel_depth: 0,
         }
     }
 
@@ -64,6 +69,7 @@ impl Node {
             best_line: vec![],
             size: 1,
             depth: 0,
+            sel_depth: 0,
         }
     }
 
@@ -71,6 +77,7 @@ impl Node {
     pub fn reset(&mut self) -> &mut Self {
         self.evaluation = heuristic(&self.board);
         self.depth = 0;
+        self.sel_depth = 0;
         self.size = 0;
         self.best_line = vec![];
         self

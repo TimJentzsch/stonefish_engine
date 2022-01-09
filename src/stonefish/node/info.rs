@@ -15,12 +15,14 @@ impl Node {
     /// This should always be called after the children have been modified.
     pub fn update_attributes(&mut self, children: &Children) {
         let mut size: usize = 1;
-        let mut depth: usize = 0;
+        let mut depth: usize = children.first().map_or(0, |child| child.depth + 1);
+        let mut sel_depth: usize = 0;
         let mut best_child: Option<&Node> = None;
 
         for child in children {
             size += child.size;
-            depth = depth.max(child.depth + 1);
+            depth = depth.min(child.depth + 1);
+            sel_depth = sel_depth.max(child.sel_depth + 1);
 
             best_child = if let Some(prev_best) = best_child {
                 if child.evaluation.for_opponent().previous_plie()
@@ -37,6 +39,7 @@ impl Node {
 
         self.size = size;
         self.depth = depth;
+        self.sel_depth = sel_depth;
 
         if let Some(best_child) = best_child {
             // The evaluation of the node is the evaluation of the best child
@@ -88,8 +91,8 @@ impl Node {
             "info depth {} seldepth {} multipv {} score {} nodes {} nps {} tbhits {} time {} pv {}  ",
             // Depth
             self.depth,
-            // Seldepth (we search the same depth for all moves)
-            self.depth,
+            // Seldepth
+            self.sel_depth,
             // Multi PV (we can only show one line at a time at the moment)
             1,
             // Score
@@ -123,6 +126,7 @@ mod tests {
 
         assert_eq!(startpos.size, 1);
         assert_eq!(startpos.depth, 0);
+        assert_eq!(startpos.sel_depth, 0);
         assert_eq!(startpos.best_line.len(), 0);
 
         let children = startpos.expand(&HashTable::new());
@@ -130,12 +134,14 @@ mod tests {
         for child in children {
             assert_eq!(child.size, 1);
             assert_eq!(child.depth, 0);
+            assert_eq!(child.sel_depth, 0);
             assert_eq!(child.best_line.len(), 0);
         }
 
         // 20 moves are possible, plus the root node
         assert_eq!(startpos.size, 21);
         assert_eq!(startpos.depth, 1);
+        assert_eq!(startpos.sel_depth, 1);
         assert_eq!(startpos.best_line.len(), 1);
     }
 
@@ -147,6 +153,7 @@ mod tests {
 
         assert_eq!(pos.size, 1);
         assert_eq!(pos.depth, 0);
+        assert_eq!(pos.sel_depth, 0);
         assert_eq!(pos.best_line.len(), 0);
         assert_eq!(pos.evaluation, Evaluation::OpponentCheckmate(0));
 
@@ -154,6 +161,7 @@ mod tests {
         assert_eq!(children.len(), 0);
 
         assert_eq!(pos.depth, 0);
+        assert_eq!(pos.sel_depth, 0);
         assert_eq!(pos.best_line.len(), 0);
         assert_eq!(pos.evaluation, Evaluation::OpponentCheckmate(0));
     }
@@ -166,6 +174,7 @@ mod tests {
 
         assert_eq!(pos.size, 1);
         assert_eq!(pos.depth, 0);
+        assert_eq!(pos.sel_depth, 0);
         assert_eq!(pos.best_line.len(), 0);
         assert!(!pos.evaluation.is_forced_mate());
 
@@ -174,10 +183,12 @@ mod tests {
         for child in children {
             assert_eq!(child.size, 1);
             assert_eq!(child.depth, 0);
+            assert_eq!(child.sel_depth, 0);
             assert_eq!(child.best_line.len(), 0);
         }
 
         assert_eq!(pos.depth, 1);
+        assert_eq!(pos.sel_depth, 1);
         assert_eq!(pos.best_line.len(), 1);
         assert_eq!(pos.evaluation, Evaluation::PlayerCheckmate(1));
     }
