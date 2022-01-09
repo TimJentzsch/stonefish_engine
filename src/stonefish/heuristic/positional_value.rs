@@ -72,8 +72,46 @@ fn player_knight_position(board: &Board, player: Player) -> i32 {
 }
 
 /// Evaluate the position of the pawns.
-fn player_pawn_position(_board: &Board, _player: Player) -> i32 {
-    0
+fn player_pawn_position(board: &Board, player: Player) -> i32 {
+    let pawn_bb = board.piece_bb(player, PieceType::P);
+    let mut value = 0;
+
+    // Being close to promotion is good
+    let rank_seven_bb = match player {
+        Player::White => BitBoard::RANK_7,
+        Player::Black => BitBoard::RANK_2,
+    };
+    value += (rank_seven_bb & pawn_bb).count_bits() as i32 * 50;
+
+    let rank_six_bb = match player {
+        Player::White => BitBoard::RANK_6,
+        Player::Black => BitBoard::RANK_3,
+    };
+    value += (rank_six_bb & pawn_bb).count_bits() as i32 * 30;
+
+    let center_files_bb = BitBoard::FILE_D | BitBoard::FILE_E;
+
+    // Developing the center pawns is good
+    let rank_five_center_bb = match player {
+        Player::White => BitBoard::RANK_5 & center_files_bb,
+        Player::Black => BitBoard::RANK_4 & center_files_bb,
+    };
+    value += (rank_five_center_bb & pawn_bb).count_bits() as i32 * 25;
+
+    let rank_four_center_bb = match player {
+        Player::White => BitBoard::RANK_4 & center_files_bb,
+        Player::Black => BitBoard::RANK_5 & center_files_bb,
+    };
+    value += (rank_four_center_bb & pawn_bb).count_bits() as i32 * 20;
+
+    // Not developing the center pawns is bad
+    let rank_two_center_bb = match player {
+        Player::White => BitBoard::RANK_2 & center_files_bb,
+        Player::Black => BitBoard::RANK_7 & center_files_bb,
+    };
+    value += (rank_two_center_bb & pawn_bb).count_bits() as i32 * -20;
+
+    value
 }
 
 /// Evaluate the position of the bishops.
