@@ -50,19 +50,45 @@ fn count_border_pieces(piece_bb: BitBoard) -> u8 {
     (get_border_bb() & piece_bb).count_bits()
 }
 
+/// Determine if the player is in the endgame.
+fn player_is_endgame(board: &Board, player: Player) -> bool {
+    // The player has no queen
+    if board.count_piece(player, PieceType::Q) == 0 {
+        return true;
+    }
+
+    // The player has only one minor piece in addition to the queen
+    board.count_piece(player, PieceType::R) == 0
+        && board.count_piece(player, PieceType::B) + board.count_piece(player, PieceType::N) <= 1
+}
+
+/// Determine if the board is in the endgame.
+fn is_endgame(board: &Board) -> bool {
+    player_is_endgame(board, Player::White) && player_is_endgame(board, Player::Black)
+}
+
 /// Evaluate the position of the king.
 fn player_king_position(board: &Board, player: Player) -> i32 {
-    let castle_bb = match player {
-        Player::White => SQ::G1.to_bb() | SQ::C1.to_bb(),
-        Player::Black => SQ::G8.to_bb() | SQ::C8.to_bb(),
-    };
     let king_bb = board.piece_bb(player, PieceType::K);
 
-    // Give points if the king is on a castling square
-    if (king_bb & castle_bb).is_empty() {
-        0
+    if is_endgame(board) {
+        let mut value = 0;
+
+        // Stay away from the borders
+        value += count_border_pieces(king_bb) as i32 * -40;
+
+        // Go to the center
+        let center_bb = SQ::D4.to_bb() | SQ::E4.to_bb() | SQ::D5.to_bb() | SQ::E5.to_bb();
+        value += (king_bb & center_bb).count_bits() as i32 * 30;
+
+        value
     } else {
-        50
+        // Encourage castling
+        let castle_bb = match player {
+            Player::White => SQ::G1.to_bb() | SQ::C1.to_bb(),
+            Player::Black => SQ::G8.to_bb() | SQ::C8.to_bb(),
+        };
+        (king_bb & castle_bb).count_bits() as i32 * 50
     }
 }
 
