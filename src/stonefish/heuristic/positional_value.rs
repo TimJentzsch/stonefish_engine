@@ -42,7 +42,7 @@ fn player_guards(board: &Board, player: Player) -> Vec<Guard> {
 /// Generate a bitboard for the board borders.
 #[inline]
 fn get_border_bb() -> BitBoard {
-    return BitBoard::FILE_A | BitBoard::FILE_H | BitBoard::RANK_1 | BitBoard::RANK_8;
+    BitBoard::FILE_A | BitBoard::FILE_H | BitBoard::RANK_1 | BitBoard::RANK_8
 }
 
 /// Counts the number of pieces at the borders of the board.
@@ -83,12 +83,23 @@ fn player_king_position(board: &Board, player: Player) -> i32 {
 
         value
     } else {
+        let mut value = 0;
+
         // Encourage castling
         let castle_bb = match player {
             Player::White => SQ::G1.to_bb() | SQ::C1.to_bb(),
             Player::Black => SQ::G8.to_bb() | SQ::C8.to_bb(),
         };
-        (king_bb & castle_bb).count_bits() as i32 * 50
+        value += (king_bb & castle_bb).count_bits() as i32 * 50;
+
+        // Don't stand around in the center
+        let center_bb = match player {
+            Player::White => SQ::E1.to_bb() | SQ::D1.to_bb() | SQ::E2.to_bb() | SQ::D2.to_bb(),
+            Player::Black => SQ::E8.to_bb() | SQ::D8.to_bb() | SQ::E7.to_bb() | SQ::D7.to_bb(),
+        };
+        value += (king_bb & center_bb).count_bits() as i32 * -20;
+
+        value
     }
 }
 
@@ -148,7 +159,7 @@ fn player_bishop_position(board: &Board, player: Player) -> i32 {
     let bishop_bb = board.piece_bb(player, PieceType::B);
 
     // Avoid having bishops on the borders
-    count_border_pieces(bishop_bb) as i32 * -10
+    count_border_pieces(bishop_bb) as i32 * -25
 }
 
 /// Evaluate the position of the rooks.
