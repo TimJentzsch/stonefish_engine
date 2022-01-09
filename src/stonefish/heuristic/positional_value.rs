@@ -1,3 +1,6 @@
+//! Evaluation of the positional value.
+//!
+//! Values inspired by https://www.chessprogramming.org/Simplified_Evaluation_Function
 use pleco::{BitBoard, Board, Piece, PieceType, Player, SQ};
 
 use super::material_value::get_piece_value;
@@ -68,7 +71,7 @@ fn player_knight_position(board: &Board, player: Player) -> i32 {
     let knight_bb = board.piece_bb(player, PieceType::N);
 
     // Avoid having knights on the borders
-    return count_border_pieces(knight_bb) as i32 * -30;
+    count_border_pieces(knight_bb) as i32 * -30
 }
 
 /// Evaluate the position of the pawns.
@@ -119,15 +122,33 @@ fn player_bishop_position(board: &Board, player: Player) -> i32 {
     let bishop_bb = board.piece_bb(player, PieceType::B);
 
     // Avoid having bishops on the borders
-    return count_border_pieces(bishop_bb) as i32 * -10;
+    count_border_pieces(bishop_bb) as i32 * -10
 }
 
 /// Evaluate the position of the rooks.
 fn player_rook_position(board: &Board, player: Player) -> i32 {
     let rook_bb = board.piece_bb(player, PieceType::R);
+    let mut value = 0;
 
-    // Avoid having rooks on the borders
-    return count_border_pieces(rook_bb) as i32 * -5;
+    // Being on the 7th rank is good
+    let rank_seven_bb = match player {
+        Player::White => BitBoard::RANK_7,
+        Player::Black => BitBoard::RANK_2,
+    };
+    value += (rank_seven_bb & rook_bb).count_bits() as i32 * 15;
+
+    // Being in the center is good
+    let center_bb = match player {
+        Player::White => SQ::D1.to_bb() | SQ::E1.to_bb(),
+        Player::Black => SQ::D8.to_bb() | SQ::E8.to_bb(),
+    };
+    value += (center_bb & rook_bb).count_bits() as i32 * 10;
+
+    // Avoid the left and right borders
+    let border_bb = (BitBoard::FILE_A | BitBoard::FILE_H) & (BitBoard::RANK_1 | BitBoard::RANK_8);
+    value += (border_bb & rook_bb).count_bits() as i32 * -5;
+
+    value
 }
 
 /// Evaluate the position of the queens.
@@ -135,7 +156,7 @@ fn player_queen_position(board: &Board, player: Player) -> i32 {
     let queen_bb = board.piece_bb(player, PieceType::Q);
 
     // Avoid having queens on the borders
-    return count_border_pieces(queen_bb) as i32 * -10;
+    count_border_pieces(queen_bb) as i32 * -10
 }
 
 /// The total piece position for the player.
