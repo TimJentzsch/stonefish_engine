@@ -75,7 +75,8 @@ impl UciEngine for Stonefish {
 
         // Try to apply the moves
         for move_str in moves {
-            if !new_board.apply_uci_move(move_str.as_str()) {
+            // Convert to lowercase to make sure it can be parsed
+            if !new_board.apply_uci_move(move_str.to_lowercase().as_str()) {
                 // The move couldn't be applied, don't change the board
                 println!("info string '{}' is an invalid move string.", move_str);
                 return;
