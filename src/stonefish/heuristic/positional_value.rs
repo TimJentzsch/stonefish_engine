@@ -237,9 +237,9 @@ fn player_piece_position(board: &Board, player: Player) -> i32 {
         + player_queen_position(board, player)
 }
 
-/// Calculate the positional value for the current player.
-fn player_positional_value(board: &Board, player: Player) -> i32 {
-    let mut value = player_piece_position(board, player);
+
+fn player_threat_value(board: &Board, player: Player) -> i32 {
+    let mut value = 0;
 
     let guards = player_guards(board, player);
 
@@ -257,14 +257,15 @@ fn player_positional_value(board: &Board, player: Player) -> i32 {
     value
 }
 
+/// Calculate the positional value for the current player.
+fn player_positional_value(board: &Board, player: Player) -> i32 {
+    player_piece_position(board, player) + player_threat_value(board, player)
+}
+
 /// The current positional value.
 ///
 /// Returns a positive number if the current player has a positional advantage.
 pub fn positional_value(board: &Board) -> i32 {
-    if board.in_check() {
-        return -50;
-    }
-
     let player_pos = player_positional_value(board, board.turn());
     let opponent_pos = player_positional_value(board, board.turn().other_player());
 
