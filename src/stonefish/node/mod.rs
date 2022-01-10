@@ -1,8 +1,8 @@
-use pleco::Board;
+use pleco::{BitMove, Board};
 
 use self::info::Line;
 
-use super::evaluation::Evaluation;
+use super::{evaluation::Evaluation, heuristic::move_heuristic};
 
 mod info;
 mod iterative_deepening;
@@ -60,28 +60,32 @@ impl Node {
         self.sel_depth = other.sel_depth;
     }
 
-    /// Create a new node.
-    ///
-    /// If the state is already available in the hash table, it is taken as evaluation.
-    /// Otherwise, the heuristic value is used.
-    pub fn new_from_hash_table(state: Board, hash_table: &HashTable) -> Self {
-        let zobrist = state.zobrist();
-        // Check if the hash table already has an entry for this position
-        let evaluation = if let Some(cached_node) = hash_table.get(&zobrist) {
+    /// Create a new node from a given move.
+    pub fn new_from_move(
+        old_eval: Evaluation,
+        old_board: &Board,
+        mv: BitMove,
+        hash_table: &HashTable,
+    ) -> Self {
+        let mut board = old_board.clone();
+        board.apply_move(mv);
+
+        // If the board is already cached, return it
+        if let Some(cached_node) = hash_table.get(&board.zobrist()) {
             return Self {
-                board: state,
+                board,
                 evaluation: cached_node.evaluation,
                 best_line: cached_node.best_line.clone(),
                 size: 1,
                 depth: 0,
                 sel_depth: 0,
             };
-        } else {
-            heuristic(&state)
-        };
+        }
+
+        let evaluation = move_heuristic(old_eval, old_board, mv, &board);
 
         Self {
-            board: state,
+            board,
             evaluation,
             best_line: vec![],
             size: 1,
@@ -154,16 +158,7 @@ impl Node {
             .generate_moves()
             .iter()
             // Create a new child for each move
-            .map(|mv| {
-                // Play the move on a new board
-                let mut new_state = self.board.clone();
-                new_state.apply_move(*mv);
-                debug_assert!(new_state.turn() != self.board.turn());
-
-                // Create a new node with the standard evaluation
-                // The next node will have the view of the opponent
-                Node::new_from_hash_table(new_state, hash_table)
-            })
+            .map(|mv| Node::new_from_move(self.evaluation, &self.board, *mv, hash_table))
             .collect();
 
         children.sort();
