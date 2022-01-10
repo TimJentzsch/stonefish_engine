@@ -68,7 +68,14 @@ impl Node {
         let zobrist = state.zobrist();
         // Check if the hash table already has an entry for this position
         let evaluation = if let Some(cached_node) = hash_table.get(&zobrist) {
-            return cached_node.clone();
+            return Self {
+                board: state,
+                evaluation: cached_node.evaluation,
+                best_line: cached_node.best_line.clone(),
+                size: 1,
+                depth: 0,
+                sel_depth: 0,
+            };
         } else {
             heuristic(&state)
         };

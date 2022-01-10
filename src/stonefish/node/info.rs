@@ -15,14 +15,12 @@ impl Node {
     /// This should always be called after the children have been modified.
     pub fn update_attributes(&mut self, children: &Children) {
         let mut size: usize = 1;
-        let mut depth: usize = children.first().map_or(0, |child| child.depth + 1);
-        let mut sel_depth: usize = 0;
+        let mut depth: usize = 0;
         let mut best_child: Option<&Node> = None;
 
         for child in children {
             size += child.size;
-            depth = depth.min(child.depth + 1);
-            sel_depth = sel_depth.max(child.sel_depth + 1);
+            depth = depth.max(child.depth + 1);
 
             best_child = if let Some(prev_best) = best_child {
                 if child.evaluation.for_opponent().previous_plie()
@@ -39,7 +37,6 @@ impl Node {
 
         self.size = size;
         self.depth = depth;
-        self.sel_depth = sel_depth;
 
         if let Some(best_child) = best_child {
             // The evaluation of the node is the evaluation of the best child
@@ -53,6 +50,8 @@ impl Node {
         } else {
             self.best_line = vec![];
         }
+
+        self.sel_depth = self.best_line.len();
     }
 
     /// Format a line of moves.

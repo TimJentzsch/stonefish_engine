@@ -37,8 +37,6 @@ impl Node {
             if cached_node.depth >= depth {
                 self.evaluation = cached_node.evaluation;
                 self.best_line = cached_node.best_line.clone();
-                self.depth = cached_node.depth;
-                self.size = cached_node.size;
                 return Ok(self.evaluation);
             }
         }
