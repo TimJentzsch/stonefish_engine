@@ -151,14 +151,22 @@ impl Node {
     /// Expands this node.
     ///
     /// This will generate all children of this node.
-    pub fn expand(&mut self, hash_table: &HashTable) -> Children {
+    pub fn expand(&mut self, high_quality: bool, hash_table: &HashTable) -> Children {
         let mut children: Children = self
             .board
             // Generate all possible moves
             .generate_moves()
             .iter()
             // Create a new child for each move
-            .map(|mv| Node::new_from_move(self.evaluation, &self.board, *mv, hash_table))
+            .map(|mv| {
+                if high_quality {
+                    let mut board = self.board.clone();
+                    board.apply_move(*mv);
+                    Node::new(board)
+                } else {
+                    Node::new_from_move(self.evaluation, &self.board, *mv, hash_table)
+                }
+            })
             .collect();
 
         children.sort();
@@ -208,7 +216,7 @@ mod tests {
         assert_eq!(startpos.sel_depth, 0);
         assert_eq!(startpos.best_line.len(), 0);
 
-        let children = startpos.expand(&HashTable::new());
+        let children = startpos.expand(true, &HashTable::new());
 
         for child in children {
             assert_eq!(child.size, 1);
@@ -236,7 +244,7 @@ mod tests {
         assert_eq!(pos.best_line.len(), 0);
         assert_eq!(pos.evaluation, Evaluation::OpponentCheckmate(0));
 
-        let children = pos.expand(&HashTable::new());
+        let children = pos.expand(true, &HashTable::new());
         assert_eq!(children.len(), 0);
 
         assert_eq!(pos.depth, 0);
@@ -257,7 +265,7 @@ mod tests {
         assert_eq!(pos.best_line.len(), 0);
         assert!(!pos.evaluation.is_forced_mate());
 
-        let children = pos.expand(&HashTable::new());
+        let children = pos.expand(true, &HashTable::new());
 
         for child in children {
             assert_eq!(child.size, 1);

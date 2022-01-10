@@ -55,7 +55,7 @@ impl Node {
             let (tx, rx) = mpsc::channel();
 
             let mut node = self.clone();
-            let children = node.reset().expand(&HashTable::new());
+            let children = node.reset().expand(false, &HashTable::new());
 
             // Search every move in a separate thread
             for child in &children {

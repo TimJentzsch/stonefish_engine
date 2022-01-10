@@ -46,7 +46,7 @@ impl Node {
         let mut alpha = alpha;
 
         // Expand the node
-        let mut children = self.expand(hash_table);
+        let mut children = self.expand(depth == 1, hash_table);
 
         if children.is_empty() {
             // There are no moves to play, check why
@@ -57,7 +57,7 @@ impl Node {
             } else {
                 self.evaluation
             };
-            
+
             return Ok(self.evaluation);
         }
 
