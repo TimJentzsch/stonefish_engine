@@ -10,9 +10,6 @@ pub fn heuristic(board: &Board) -> Evaluation {
     if board.checkmate() {
         // The player got checkmated, it's a win for the opponent
         Evaluation::OpponentCheckmate(0)
-    } else if board.stalemate() {
-        // Stalemate
-        Evaluation::Centipawns(0)
     } else {
         let mat_value = material_value::material_value(board);
         let pos_value = positional_value::positional_value(board);

@@ -49,7 +49,15 @@ impl Node {
         let mut children = self.expand(hash_table);
 
         if children.is_empty() {
-            // There are no moves to play
+            // There are no moves to play, check why
+            self.evaluation = if self.board.checkmate() {
+                Evaluation::OpponentCheckmate(0)
+            } else if self.board.stalemate() {
+                Evaluation::Centipawns(0)
+            } else {
+                self.evaluation
+            };
+            
             return Ok(self.evaluation);
         }
 
