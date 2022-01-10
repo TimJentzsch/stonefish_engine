@@ -5,6 +5,22 @@ use pleco::{BitBoard, Board, Piece, PieceType, Player, SQ};
 
 use super::material_value::get_piece_value;
 
+/// The bitboard of the border squares.
+pub const BORDER_BB: BitBoard =
+    BitBoard(0b11111111_10000001_10000001_10000001_10000001_10000001_10000001_11111111);
+/// The bitboard of the corner squares.
+pub const CORNER_BB: BitBoard =
+    BitBoard(0b10000001_00000000_00000000_00000000_00000000_00000000_00000000_10000001);
+/// The bitboard of the center squares (radius 1).
+pub const CENTER_ONE_BB: BitBoard =
+    BitBoard(0b00000000_00000000_00000000_00011000_00011000_00000000_00000000_00000000);
+/// The bitboard of the squares around the center squares.
+pub const CENTER_RING_BB: BitBoard =
+    BitBoard(0b00000000_00000000_00111100_00100100_00100100_00111100_00000000_00000000);
+/// The bitboard of the center squares (radius 2).
+pub const CENTER_TWO_BB: BitBoard =
+    BitBoard(0b00000000_00000000_00111100_00111100_00111100_00111100_00000000_00000000);
+
 struct Guard {
     origin: (SQ, Piece),
     target: (SQ, Piece),
@@ -39,41 +55,6 @@ fn player_guards(board: &Board, player: Player) -> Vec<Guard> {
     guards
 }
 
-/// The borders of the board.
-#[inline]
-fn get_border_bb() -> BitBoard {
-    BitBoard::FILE_A | BitBoard::FILE_H | BitBoard::RANK_1 | BitBoard::RANK_8
-}
-
-/// The corners of the board.
-#[inline]
-fn get_corner_bb() -> BitBoard {
-    SQ::A1.to_bb() | SQ::A8.to_bb() | SQ::H1.to_bb() | SQ::H8.to_bb()
-}
-
-/// The center of the board with radius one.
-#[inline]
-fn get_center_sq_one_bb() -> BitBoard {
-    SQ::D4.to_bb() | SQ::E4.to_bb() | SQ::D5.to_bb() | SQ::E5.to_bb()
-}
-
-/// Get the center ring of the board with radius two.
-#[inline]
-fn get_center_ring_two_bb() -> BitBoard {
-    (BitBoard::FILE_C | BitBoard::FILE_D | BitBoard::FILE_E | BitBoard::FILE_F)
-        & (BitBoard::RANK_1
-            | BitBoard::RANK_2
-            | get_center_sq_one_bb()
-            | BitBoard::RANK_7
-            | BitBoard::RANK_8)
-}
-
-/// Get the center the board with radius two.
-#[inline]
-fn get_center_sq_two_bb() -> BitBoard {
-    get_center_sq_one_bb() | get_center_ring_two_bb()
-}
-
 /// Score how many pieces have the corresponding positions.
 fn score_position(piece_bb: BitBoard, position_bb: BitBoard, score: i32) -> i32 {
     (piece_bb & position_bb).count_bits() as i32 * score
@@ -104,12 +85,12 @@ fn player_king_position(board: &Board, player: Player) -> i32 {
         let mut value = 0;
 
         // Stay away from the borders
-        value += score_position(piece_bb, get_border_bb(), -30);
-        value += score_position(piece_bb, get_corner_bb(), -20);
+        value += score_position(piece_bb, BORDER_BB, -30);
+        value += score_position(piece_bb, CORNER_BB, -20);
 
         // Go to the center
-        value += score_position(piece_bb, get_center_sq_one_bb(), 40);
-        value += score_position(piece_bb, get_center_ring_two_bb(), 20);
+        value += score_position(piece_bb, CENTER_ONE_BB, 40);
+        value += score_position(piece_bb, CENTER_RING_BB, 20);
 
         value
     } else {
@@ -182,11 +163,11 @@ fn player_knight_position(board: &Board, player: Player) -> i32 {
     let mut value = 0;
 
     // Avoid having knights on the borders
-    value += score_position(piece_bb, get_border_bb(), -30);
-    value += score_position(piece_bb, get_corner_bb(), -20);
+    value += score_position(piece_bb, BORDER_BB, -30);
+    value += score_position(piece_bb, CORNER_BB, -20);
     // Move knights to the center
-    value += score_position(piece_bb, get_center_sq_one_bb(), 20);
-    value += score_position(piece_bb, get_center_ring_two_bb(), 10);
+    value += score_position(piece_bb, CENTER_ONE_BB, 20);
+    value += score_position(piece_bb, CENTER_RING_BB, 10);
 
     value
 }
@@ -197,11 +178,11 @@ fn player_bishop_position(board: &Board, player: Player) -> i32 {
     let mut value = 0;
 
     // Avoid having bishops on the borders
-    value += score_position(piece_bb, get_border_bb(), -15);
-    value += score_position(piece_bb, get_corner_bb(), -10);
+    value += score_position(piece_bb, BORDER_BB, -15);
+    value += score_position(piece_bb, CORNER_BB, -10);
     // Move bishops to the center
-    value += score_position(piece_bb, get_center_sq_one_bb(), 15);
-    value += score_position(piece_bb, get_center_ring_two_bb(), 10);
+    value += score_position(piece_bb, CENTER_ONE_BB, 15);
+    value += score_position(piece_bb, CENTER_RING_BB, 10);
 
     value
 }
@@ -226,7 +207,7 @@ fn player_rook_position(board: &Board, player: Player) -> i32 {
     value += score_position(piece_bb, center_bb, 10);
 
     // Avoid the left and right borders
-    let border_bb = (BitBoard::FILE_A | BitBoard::FILE_H) ^ get_border_bb();
+    let border_bb = (BitBoard::FILE_A | BitBoard::FILE_H) ^ BORDER_BB;
     value += score_position(piece_bb, border_bb, -5);
 
     value
@@ -238,10 +219,10 @@ fn player_queen_position(board: &Board, player: Player) -> i32 {
     let mut value = 0;
 
     // Avoid having queens on the borders
-    value += score_position(piece_bb, get_border_bb(), -10);
-    value += score_position(piece_bb, get_corner_bb(), -10);
+    value += score_position(piece_bb, BORDER_BB, -10);
+    value += score_position(piece_bb, CORNER_BB, -10);
     // Move the queen to the center
-    value += score_position(piece_bb, get_center_sq_two_bb(), 5);
+    value += score_position(piece_bb, CENTER_TWO_BB, 5);
 
     value
 }
@@ -288,4 +269,56 @@ pub fn positional_value(board: &Board) -> i32 {
     let opponent_pos = player_positional_value(board, board.turn().other_player());
 
     player_pos - opponent_pos
+}
+
+#[cfg(test)]
+mod tests {
+    use pleco::{BitBoard, SQ};
+
+    use crate::stonefish::heuristic::positional_value::{
+        BORDER_BB, CENTER_ONE_BB, CENTER_RING_BB, CORNER_BB, CENTER_TWO_BB,
+    };
+
+    #[test]
+    fn should_calculate_center_one_bb() {
+        let expected = SQ::D4.to_bb() | SQ::E4.to_bb() | SQ::D5.to_bb() | SQ::E5.to_bb();
+        assert_eq!(CENTER_ONE_BB, expected);
+    }
+
+    #[test]
+    fn should_calculate_border_bb() {
+        let expected = BitBoard::FILE_A | BitBoard::FILE_H | BitBoard::RANK_1 | BitBoard::RANK_8;
+        assert_eq!(BORDER_BB, expected);
+    }
+
+    #[test]
+    fn should_calculate_corner_bb() {
+        let expected = SQ::A1.to_bb() | SQ::A8.to_bb() | SQ::H1.to_bb() | SQ::H8.to_bb();
+        assert_eq!(CORNER_BB, expected);
+    }
+
+    #[test]
+    fn should_calculate_center_ring_bb() {
+        let expected = SQ::C3.to_bb()
+            | SQ::C4.to_bb()
+            | SQ::C5.to_bb()
+            | SQ::C6.to_bb()
+            | SQ::D6.to_bb()
+            | SQ::E6.to_bb()
+            | SQ::F6.to_bb()
+            | SQ::F5.to_bb()
+            | SQ::F4.to_bb()
+            | SQ::F3.to_bb()
+            | SQ::E3.to_bb()
+            | SQ::D3.to_bb();
+
+        assert_eq!(CENTER_RING_BB, expected);
+    }
+
+    #[test]
+    fn should_calculate_center_two_bb() {
+        let expected = CENTER_ONE_BB | CENTER_RING_BB;
+
+        assert_eq!(CENTER_TWO_BB, expected);
+    }
 }
