@@ -118,6 +118,8 @@ impl UciEngine for Stonefish {
             // Consider a delay of 100 ms and cap at 7 seconds
             total_time_ms = total_time_ms.saturating_sub(100).min(7000);
             Some(Duration::from_millis(total_time_ms))
+        } else if max_depth.is_some() {
+            None
         } else {
             // Search for 10 seconds
             Some(Duration::from_millis(10000))
