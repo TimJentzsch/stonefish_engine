@@ -1,4 +1,4 @@
-use pleco::{PieceType, Board, Player};
+use pleco::{BitMove, Board, PieceType, Player};
 
 /// Get the value of the given piece.
 pub fn get_piece_value(piece: PieceType) -> i32 {
@@ -33,4 +33,14 @@ pub fn material_value(board: &Board) -> i32 {
     let opponent_mat = player_material_value(board, board.turn().other_player());
 
     player_mat - opponent_mat
+}
+
+/// The change in material value of the given move.
+pub fn material_move_delta(old_board: &Board, mv: BitMove) -> i32 {
+    if mv.is_capture() {
+        let captured_piece = old_board.piece_at_sq(mv.get_dest()).type_of();
+        get_piece_value(captured_piece)
+    } else {
+        0
+    }
 }

@@ -1,6 +1,6 @@
 use pleco::{BitMove, Board, SQ};
 
-use self::material_value::get_piece_value;
+use self::{material_value::{get_piece_value, material_move_delta}, positional_value::positional_move_delta};
 
 use super::evaluation::Evaluation;
 
@@ -24,36 +24,10 @@ pub fn heuristic(board: &Board) -> Evaluation {
 /// The rough heuristic evaluation for a given move, used for move ordering.
 pub fn move_heuristic(old_eval: Evaluation, old_board: &Board, mv: BitMove, new_board: &Board) -> Evaluation {
     if new_board.checkmate() {
-        return Evaluation::OpponentCheckmate(0);
+        return Evaluation::PlayerCheckmate(0);
     }
     
-    let delta = if mv.is_capture() {
-        // Captures are usually worth to look at
-        // Especially if the captured piece is worth more than the capturing piece
-        let src_piece = old_board.piece_at_sq(mv.get_src()).type_of();
-        let dest_piece = old_board.piece_at_sq(mv.get_dest()).type_of();
-
-        get_piece_value(dest_piece).saturating_sub(get_piece_value(src_piece) / 3)
-    } else if mv.is_castle() {
-        // Castling is usually good
-        50
-    } else if mv.is_promo() {
-        // Promotion is awesome
-        get_piece_value(mv.promo_piece())
-    } else if let (true, dest_sq) = mv.is_double_push() {
-        // Double push is good, especially in the center
-        let dest_sq = SQ(dest_sq);
-
-        match dest_sq.file() {
-            pleco::File::D => 20,
-            pleco::File::E => 20,
-            _ => 5,
-        }
-    } else if mv.is_en_passant() {
-        20
-    } else {
-        0
-    };
+    let delta = positional_move_delta(old_board, mv, new_board) + material_move_delta(old_board, mv);
 
     let new_eval = match old_eval {
         Evaluation::Centipawns(old_val) => Evaluation::Centipawns(old_val + delta),
