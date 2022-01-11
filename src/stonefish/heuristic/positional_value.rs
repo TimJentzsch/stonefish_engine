@@ -3,8 +3,6 @@
 //! Values inspired by https://www.chessprogramming.org/Simplified_Evaluation_Function
 use pleco::{BitBoard, BitMove, Board, Piece, PieceType, Player, SQ};
 
-use crate::stonefish::evaluation::Evaluation;
-
 use super::material_value::get_piece_value;
 
 /// The bitboard of the border squares.
@@ -251,17 +249,19 @@ fn player_threat_value(board: &Board, player: Player) -> i32 {
     value
 }
 
-/// Calculate the positional value for the current player.
-fn player_positional_value(board: &Board, player: Player) -> i32 {
-    player_piece_position(board, player) + player_threat_value(board, player)
+pub fn threat_value(board: &Board) -> i32 {
+    let player_threat = player_threat_value(board, board.turn());
+    let opponent_threat = player_threat_value(board, board.turn().other_player());
+
+    player_threat - opponent_threat
 }
 
 /// The current positional value.
 ///
 /// Returns a positive number if the current player has a positional advantage.
-pub fn positional_value(board: &Board) -> i32 {
-    let player_pos = player_positional_value(board, board.turn());
-    let opponent_pos = player_positional_value(board, board.turn().other_player());
+pub fn initial_positional_value(board: &Board) -> i32 {
+    let player_pos = player_piece_position(board, board.turn());
+    let opponent_pos = player_piece_position(board, board.turn().other_player());
 
     player_pos - opponent_pos
 }
@@ -284,7 +284,7 @@ pub fn positional_piece_value(
 }
 
 /// The positional evaluation delta for a given move.
-pub fn positional_move_delta(old_board: &Board, mv: BitMove, new_board: &Board) -> i32 {
+pub fn move_positional_value(old_board: &Board, mv: BitMove, new_board: &Board) -> i32 {
     let player = old_board.turn();
     let piece_type = old_board.piece_at_sq(mv.get_src()).type_of();
 

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::stonefish::{
     abort_flags::{AbortFlags, SearchAborted},
-    evaluation::Evaluation,
+    evaluation::Evaluation, heuristic::final_heuristic,
 };
 
 use super::Node;
@@ -25,6 +25,8 @@ impl Node {
         let zobrist = self.board.zobrist();
 
         if depth == 0 {
+            // Update the evaluation with a more expensive analysis
+            self.evaluation = final_heuristic(self.evaluation, &self.board);
             return Ok(self.evaluation);
         }
 
@@ -49,15 +51,8 @@ impl Node {
         let mut children = self.expand(depth == 1, hash_table);
 
         if children.is_empty() {
-            // There are no moves to play, check why
-            self.evaluation = if self.board.checkmate() {
-                Evaluation::OpponentCheckmate(0)
-            } else if self.board.stalemate() {
-                Evaluation::Centipawns(0)
-            } else {
-                self.evaluation
-            };
-
+            // Update the evaluation with a more expensive analysis
+            self.evaluation = final_heuristic(self.evaluation, &self.board);
             return Ok(self.evaluation);
         }
 
@@ -88,7 +83,7 @@ impl Node {
         // Keep depth and size up-to-date
         self.update_attributes(&children);
         hash_table.insert(zobrist, self.clone());
-        Ok(cur_evaluation)
+        Ok(self.evaluation)
     }
 
     /// The minimax search algorithm with alpha-beta-pruning.

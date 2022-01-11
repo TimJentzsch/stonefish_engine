@@ -31,14 +31,14 @@ pub struct Node {
     pub sel_depth: usize,
 }
 
-use crate::stonefish::heuristic::heuristic;
+use crate::stonefish::heuristic::initial_heuristic;
 
 use self::{info::Children, minimax::HashTable};
 
 impl Node {
     /// Create a new node with move order heuristic.
     pub fn new(state: Board) -> Self {
-        let evaluation = heuristic(&state);
+        let evaluation = initial_heuristic(&state);
 
         Self {
             board: state,
@@ -96,7 +96,7 @@ impl Node {
 
     /// Reset the evaluation of the node.
     pub fn reset(&mut self) -> &mut Self {
-        self.evaluation = heuristic(&self.board);
+        self.evaluation = initial_heuristic(&self.board);
         self.depth = 0;
         self.sel_depth = 0;
         self.size = 0;
