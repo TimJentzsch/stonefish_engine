@@ -64,7 +64,7 @@ mod tests {
     use pleco::Board;
 
     use crate::stonefish::{
-        evaluation::Evaluation, hash_table::HashTable, heuristic::initial_heuristic, node::Node,
+        evaluation::Evaluation, types::HashTable, heuristic::initial_heuristic, node::Node,
     };
 
     #[test]

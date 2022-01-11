@@ -1,8 +1,10 @@
 use pleco::{BitMove, Board};
 
-use self::info::Line;
-
-use super::{evaluation::Evaluation, hash_table::HashTable, heuristic::move_heuristic};
+use super::{
+    evaluation::Evaluation,
+    heuristic::move_heuristic,
+    types::{Children, HashTable, HashTableEntry, Line},
+};
 
 mod info;
 mod iterative_deepening;
@@ -32,8 +34,6 @@ pub struct Node {
 }
 
 use crate::stonefish::heuristic::initial_heuristic;
-
-use self::info::Children;
 
 impl Node {
     /// Create a new node with move order heuristic.
@@ -71,11 +71,16 @@ impl Node {
         board.apply_move(mv);
 
         // If the board is already cached, return it
-        if let Some(cached_node) = hash_table.get(&board.zobrist()) {
+        if let Some(HashTableEntry {
+            evaluation: cache_eval,
+            best_line: cache_line,
+            depth: _,
+        }) = hash_table.get(&board.zobrist())
+        {
             return Self {
                 board,
-                evaluation: cached_node.evaluation,
-                best_line: cached_node.best_line.clone(),
+                evaluation: *cache_eval,
+                best_line: cache_line.clone(),
                 size: 1,
                 depth: 0,
                 sel_depth: 0,
@@ -117,8 +122,8 @@ impl Node {
             depth = depth.max(child.depth + 1);
 
             best_child = if let Some(prev_best) = best_child {
-                if child.evaluation.for_opponent().previous_plie()
-                    > prev_best.evaluation.for_opponent().previous_plie()
+                // The child eval is out of the perspective from the opponent, so worse is better for us
+                if child.evaluation < prev_best.evaluation
                 {
                     Some(child)
                 } else {
@@ -194,7 +199,7 @@ impl PartialEq for Node {
 mod tests {
     use pleco::Board;
 
-    use crate::stonefish::{evaluation::Evaluation, hash_table::HashTable, node::Node};
+    use crate::stonefish::{evaluation::Evaluation, node::Node, types::HashTable};
 
     #[test]
     fn should_expand_startpos() {
@@ -240,32 +245,5 @@ mod tests {
         assert_eq!(pos.sel_depth, 0);
         assert_eq!(pos.best_line.len(), 0);
         assert_eq!(pos.evaluation, Evaluation::OpponentCheckmate(0));
-    }
-
-    #[test]
-    fn should_expand_forced_mate_1() {
-        let mut pos = Node::new(
-            Board::from_fen("1rb4r/p1Pp3p/kb1P3n/3Q4/N3Pp2/8/P1P3PP/7K w - - 3 2").unwrap(),
-        );
-
-        assert_eq!(pos.size, 1);
-        assert_eq!(pos.depth, 0);
-        assert_eq!(pos.sel_depth, 0);
-        assert_eq!(pos.best_line.len(), 0);
-        assert!(!pos.evaluation.is_forced_mate());
-
-        let children = pos.expand(&HashTable::new());
-
-        for child in children {
-            assert_eq!(child.size, 1);
-            assert_eq!(child.depth, 0);
-            assert_eq!(child.sel_depth, 0);
-            assert_eq!(child.best_line.len(), 0);
-        }
-
-        assert_eq!(pos.depth, 1);
-        assert_eq!(pos.sel_depth, 1);
-        assert_eq!(pos.best_line.len(), 1);
-        assert_eq!(pos.evaluation, Evaluation::PlayerCheckmate(1));
     }
 }

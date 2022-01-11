@@ -1,13 +1,8 @@
 use std::time::Duration;
 
-use pleco::BitMove;
-
-use crate::stonefish::evaluation::Evaluation;
+use crate::stonefish::{evaluation::Evaluation, types::Line};
 
 use super::Node;
-
-pub type Line = Vec<BitMove>;
-pub type Children = Vec<Node>;
 
 impl Node {
     /// Format a line of moves.
