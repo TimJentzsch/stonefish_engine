@@ -286,12 +286,24 @@ pub fn positional_piece_value(
 /// The positional evaluation delta for a given move.
 pub fn move_positional_value(old_board: &Board, mv: BitMove, new_board: &Board) -> i32 {
     let player = old_board.turn();
-    let piece_type = old_board.piece_at_sq(mv.get_src()).type_of();
+    let src_sq = mv.get_src();
+    let dest_sq = mv.get_dest();
 
-    let old_pos_eval = positional_piece_value(piece_type, old_board, mv.get_src().to_bb(), player);
-    let new_pos_eval = positional_piece_value(piece_type, new_board, mv.get_dest().to_bb(), player);
+    let old_piece = old_board.piece_at_sq(src_sq).type_of();
+    // The new piece can be different (if promoting)
+    let new_piece = new_board.piece_at_sq(dest_sq).type_of();
 
-    new_pos_eval - old_pos_eval
+    let old_pos_eval = positional_piece_value(old_piece, old_board, src_sq.to_bb(), player);
+    let new_pos_eval = positional_piece_value(new_piece, new_board, dest_sq.to_bb(), player);
+    // We also need to consider the change of capturing an opponent's piece
+    let capture_eval = if mv.is_capture() {
+        let capture_piece = old_board.piece_at_sq(dest_sq).type_of();
+        positional_piece_value(capture_piece, old_board, dest_sq.to_bb(), player.other_player())
+    } else {
+        0
+    };
+
+    new_pos_eval - old_pos_eval + capture_eval
 }
 
 #[cfg(test)]

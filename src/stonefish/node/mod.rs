@@ -2,7 +2,7 @@ use pleco::{BitMove, Board};
 
 use self::info::Line;
 
-use super::{evaluation::Evaluation, heuristic::move_heuristic};
+use super::{evaluation::Evaluation, hash_table::HashTable, heuristic::move_heuristic};
 
 mod info;
 mod iterative_deepening;
@@ -33,7 +33,7 @@ pub struct Node {
 
 use crate::stonefish::heuristic::initial_heuristic;
 
-use self::{info::Children, minimax::HashTable};
+use self::info::Children;
 
 impl Node {
     /// Create a new node with move order heuristic.
@@ -151,22 +151,14 @@ impl Node {
     /// Expands this node.
     ///
     /// This will generate all children of this node.
-    pub fn expand(&mut self, high_quality: bool, hash_table: &HashTable) -> Children {
+    pub fn expand(&mut self, hash_table: &HashTable) -> Children {
         let mut children: Children = self
             .board
             // Generate all possible moves
             .generate_moves()
             .iter()
             // Create a new child for each move
-            .map(|mv| {
-                if high_quality {
-                    let mut board = self.board.clone();
-                    board.apply_move(*mv);
-                    Node::new(board)
-                } else {
-                    Node::new_from_move(self.evaluation, &self.board, *mv, hash_table)
-                }
-            })
+            .map(|mv| Node::new_from_move(self.evaluation, &self.board, *mv, hash_table))
             .collect();
 
         children.sort();
@@ -202,10 +194,7 @@ impl PartialEq for Node {
 mod tests {
     use pleco::Board;
 
-    use crate::stonefish::{
-        evaluation::Evaluation,
-        node::{minimax::HashTable, Node},
-    };
+    use crate::stonefish::{evaluation::Evaluation, hash_table::HashTable, node::Node};
 
     #[test]
     fn should_expand_startpos() {
@@ -216,7 +205,7 @@ mod tests {
         assert_eq!(startpos.sel_depth, 0);
         assert_eq!(startpos.best_line.len(), 0);
 
-        let children = startpos.expand(true, &HashTable::new());
+        let children = startpos.expand(&HashTable::new());
 
         for child in children {
             assert_eq!(child.size, 1);
@@ -244,7 +233,7 @@ mod tests {
         assert_eq!(pos.best_line.len(), 0);
         assert_eq!(pos.evaluation, Evaluation::OpponentCheckmate(0));
 
-        let children = pos.expand(true, &HashTable::new());
+        let children = pos.expand(&HashTable::new());
         assert_eq!(children.len(), 0);
 
         assert_eq!(pos.depth, 0);
@@ -265,7 +254,7 @@ mod tests {
         assert_eq!(pos.best_line.len(), 0);
         assert!(!pos.evaluation.is_forced_mate());
 
-        let children = pos.expand(true, &HashTable::new());
+        let children = pos.expand(&HashTable::new());
 
         for child in children {
             assert_eq!(child.size, 1);

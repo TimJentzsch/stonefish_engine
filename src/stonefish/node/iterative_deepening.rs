@@ -8,11 +8,11 @@ use std::{
 };
 
 use crate::{
-    stonefish::{abort_flags::AbortFlags, evaluation::Evaluation},
+    stonefish::{abort_flags::AbortFlags, evaluation::Evaluation, hash_table::HashTable},
     uci::AbortFlag,
 };
 
-use super::{minimax::HashTable, Node};
+use super::Node;
 
 impl Node {
     /// Set a timer to abort the search.
@@ -55,7 +55,7 @@ impl Node {
             let (tx, rx) = mpsc::channel();
 
             let mut node = self.clone();
-            let children = node.reset().expand(false, &HashTable::new());
+            let children = node.reset().expand(&HashTable::new());
 
             // Search every move in a separate thread
             for child in &children {

@@ -1,13 +1,11 @@
-use std::collections::HashMap;
-
 use crate::stonefish::{
     abort_flags::{AbortFlags, SearchAborted},
-    evaluation::Evaluation, heuristic::final_heuristic,
+    evaluation::Evaluation,
+    hash_table::HashTable,
+    heuristic::final_heuristic,
 };
 
 use super::Node;
-
-pub type HashTable = HashMap<u64, Node>;
 
 impl Node {
     /// The implementation of minimax with alpha-beta-pruning.
@@ -48,7 +46,7 @@ impl Node {
         let mut alpha = alpha;
 
         // Expand the node
-        let mut children = self.expand(depth == 1, hash_table);
+        let mut children = self.expand(hash_table);
 
         if children.is_empty() {
             // Update the evaluation with a more expensive analysis

@@ -2,6 +2,7 @@ mod abort_flags;
 mod evaluation;
 mod heuristic;
 mod node;
+mod hash_table;
 
 use std::time::Duration;
 

@@ -63,7 +63,9 @@ pub fn final_heuristic(old_eval: Evaluation, board: &Board) -> Evaluation {
 mod tests {
     use pleco::Board;
 
-    use crate::stonefish::{evaluation::Evaluation, heuristic::initial_heuristic};
+    use crate::stonefish::{
+        evaluation::Evaluation, hash_table::HashTable, heuristic::initial_heuristic, node::Node,
+    };
 
     #[test]
     fn should_evaluate_start_position() {
@@ -81,5 +83,40 @@ mod tests {
         let actual = initial_heuristic(&board);
 
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn should_properly_update_heuristic() {
+        let fens = [
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            // TODO: Fix bug with promotion capture
+            // "1rb4r/pkPp3p/1b1P3n/1Q6/N3Pp2/8/P1P3PP/7K w - - 1 1",
+            "4kb1r/p2n1ppp/4q3/4p1B1/4P3/1Q6/PPP2PPP/2KR4 w k - 1 1",
+            "r1b2k1r/ppp1bppp/8/1B1Q4/5q2/2P5/PPP2PPP/R3R1K1 w - - 1 1",
+            "r1b2k1r/ppp1bppp/8/1B1Q4/5q2/2P5/PPP2PPP/R3R1K1 w - - 1 1",
+            "5rkr/pp2Rp2/1b1p1Pb1/3P2Q1/2n3P1/2p5/P4P2/4R1K1 w - - 1 1",
+            "1r1kr3/Nbppn1pp/1b6/8/6Q1/3B1P2/Pq3P1P/3RR1K1 w - - 1 1",
+            "5rk1/1p1q2bp/p2pN1p1/2pP2Bn/2P3P1/1P6/P4QKP/5R2 w - - 1 1",
+        ];
+
+        for fen in fens {
+            let mut node = Node::new(Board::from_fen(fen).unwrap());
+            let parent_heuristic = node.evaluation;
+            let children = node.expand(&HashTable::new());
+
+            for child in children {
+                let initial_heuristic = initial_heuristic(&child.board).for_opponent();
+                let incremental_heuristic = child.evaluation.for_opponent();
+
+                assert_eq!(
+                    incremental_heuristic,
+                    initial_heuristic,
+                    "'{}' ({:?}) -> {}",
+                    fen,
+                    parent_heuristic,
+                    child.board.last_move().unwrap().stringify()
+                );
+            }
+        }
     }
 }
