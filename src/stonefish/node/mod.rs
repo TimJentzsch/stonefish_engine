@@ -113,34 +113,21 @@ impl Node {
     ///
     /// This should always be called after the children have been modified.
     pub fn update_attributes(&mut self, children: &Children) {
-        let mut size: usize = 1;
-        let mut depth: usize = 0;
-        let mut best_child: Option<&Node> = None;
-
-        for child in children {
-            size += child.size;
-            depth = depth.max(child.depth + 1);
-
-            best_child = if let Some(prev_best) = best_child {
-                // Choose the best outcome for the current player
-                if self.board.turn() == Player::White && child.evaluation > prev_best.evaluation
-                    || child.evaluation < prev_best.evaluation
-                {
-                    Some(child)
-                } else {
-                    Some(prev_best)
-                }
-            } else {
-                Some(child)
-            }
-        }
-
+        let (size, depth) = children.iter().fold((1, 0), |(size, depth), child| {
+            (size + child.size, depth.max(child.depth + 1))
+        });
         self.size = size;
         self.depth = depth;
 
+        // Select the best move to play
+        let best_child = match self.board.turn() {
+            Player::White => children.iter().max(),
+            Player::Black => children.iter().min(),
+        };
+
         if let Some(best_child) = best_child {
             // The evaluation of the node is the evaluation of the best child
-            self.evaluation = best_child.evaluation;
+            self.evaluation = best_child.evaluation.previous_plie();
             // The best line to play is the best child and its line
             let mv = best_child.board.last_move().unwrap();
             let mut best_line = best_child.best_line.clone();

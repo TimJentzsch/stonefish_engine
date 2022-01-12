@@ -46,6 +46,7 @@ impl Node {
 
         // Keep depth and size up-to-date
         self.update_attributes(&children);
+        // self.evaluation = cur_evaluation;
         hash_table.insert(self.board.zobrist(), HashTableEntry::from_node(self));
         Ok(self.evaluation)
     }
@@ -88,6 +89,7 @@ impl Node {
 
         // Keep depth and size up-to-date
         self.update_attributes(&children);
+        // self.evaluation = cur_evaluation;
         hash_table.insert(self.board.zobrist(), HashTableEntry::from_node(self));
         Ok(self.evaluation)
     }
@@ -227,7 +229,7 @@ mod test {
             Board::from_fen("6k1/pp4pp/4p3/3p4/1P1qn3/N3Q3/P2B2PP/2r3K1 w - - 0 21").unwrap();
         let mut node = Node::new(board);
         let actual = node.minimax(4, &mut HashTable::new(), AbortFlags::new());
-        let expected = Ok(Evaluation::WhiteCheckmate(4));
+        let expected = Ok(Evaluation::BlackCheckmate(4));
 
         assert_eq!(actual, expected);
     }
