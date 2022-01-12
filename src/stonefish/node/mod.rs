@@ -1,7 +1,7 @@
 use pleco::{BitMove, Board};
 
 use super::{
-    evaluation::Evaluation,
+    pov_evaluation::PovEvaluation,
     heuristic::move_heuristic,
     types::{Children, HashTable, HashTableEntry, Line},
 };
@@ -16,7 +16,7 @@ pub struct Node {
     /// The current board state.
     pub board: Board,
     /// The current evaluation for this position.
-    pub evaluation: Evaluation,
+    pub evaluation: PovEvaluation,
     /// The best line to play from this position.
     pub best_line: Line,
     /// The current size of the tree.
@@ -62,7 +62,7 @@ impl Node {
 
     /// Create a new node from a given move.
     pub fn new_from_move(
-        old_eval: Evaluation,
+        old_eval: PovEvaluation,
         old_board: &Board,
         mv: BitMove,
         hash_table: &HashTable,
@@ -199,7 +199,7 @@ impl PartialEq for Node {
 mod tests {
     use pleco::Board;
 
-    use crate::stonefish::{evaluation::Evaluation, node::Node, types::HashTable};
+    use crate::stonefish::{pov_evaluation::PovEvaluation, node::Node, types::HashTable};
 
     #[test]
     fn should_expand_startpos() {
@@ -236,7 +236,7 @@ mod tests {
         assert_eq!(pos.depth, 0);
         assert_eq!(pos.sel_depth, 0);
         assert_eq!(pos.best_line.len(), 0);
-        assert_eq!(pos.evaluation, Evaluation::OpponentCheckmate(0));
+        assert_eq!(pos.evaluation, PovEvaluation::OpponentCheckmate(0));
 
         let children = pos.expand(&HashTable::new());
         assert_eq!(children.len(), 0);
@@ -244,6 +244,6 @@ mod tests {
         assert_eq!(pos.depth, 0);
         assert_eq!(pos.sel_depth, 0);
         assert_eq!(pos.best_line.len(), 0);
-        assert_eq!(pos.evaluation, Evaluation::OpponentCheckmate(0));
+        assert_eq!(pos.evaluation, PovEvaluation::OpponentCheckmate(0));
     }
 }

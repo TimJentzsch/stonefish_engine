@@ -2,10 +2,10 @@ use std::collections::HashMap;
 
 use pleco::BitMove;
 
-use super::{evaluation::Evaluation, node::Node};
+use super::{pov_evaluation::PovEvaluation, node::Node};
 
 pub struct HashTableEntry {
-    pub evaluation: Evaluation,
+    pub evaluation: PovEvaluation,
     pub best_line: Line,
     pub depth: usize,
 }

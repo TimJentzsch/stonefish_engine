@@ -1,6 +1,6 @@
 use crate::stonefish::{
     abort_flags::{AbortFlags, SearchAborted},
-    evaluation::Evaluation,
+    pov_evaluation::PovEvaluation,
     heuristic::final_heuristic,
     types::{HashTable, HashTableEntry},
 };
@@ -15,11 +15,11 @@ impl Node {
     fn minimax_helper(
         &mut self,
         depth: usize,
-        alpha: Evaluation,
-        beta: Evaluation,
+        alpha: PovEvaluation,
+        beta: PovEvaluation,
         hash_table: &mut HashTable,
         abort_flags: AbortFlags,
-    ) -> Result<Evaluation, SearchAborted> {
+    ) -> Result<PovEvaluation, SearchAborted> {
         if depth == 0 {
             // Update the evaluation with a more expensive analysis
             self.evaluation = final_heuristic(self.evaluation, &self.board);
@@ -45,7 +45,7 @@ impl Node {
         }
 
         // Expect the worst
-        let mut cur_evaluation = Evaluation::OpponentCheckmate(0);
+        let mut cur_evaluation = PovEvaluation::OpponentCheckmate(0);
         let mut alpha = alpha;
 
         // Expand the node
@@ -96,11 +96,11 @@ impl Node {
         depth: usize,
         hash_table: &mut HashTable,
         abort_flags: AbortFlags,
-    ) -> Result<Evaluation, SearchAborted> {
+    ) -> Result<PovEvaluation, SearchAborted> {
         self.minimax_helper(
             depth,
-            Evaluation::OpponentCheckmate(0),
-            Evaluation::OpponentCheckmate(0),
+            PovEvaluation::OpponentCheckmate(0),
+            PovEvaluation::OpponentCheckmate(0),
             hash_table,
             abort_flags,
         )
@@ -113,7 +113,7 @@ mod test {
 
     use crate::stonefish::{
         abort_flags::AbortFlags,
-        evaluation::Evaluation,
+        pov_evaluation::PovEvaluation,
         node::{minimax::HashTable, Node},
     };
 
@@ -123,7 +123,7 @@ mod test {
         let board = Board::from_fen("3Q1k2/5p1p/p3p2P/3p4/8/2Pq2P1/1P3PK1/8 b - - 2 37").unwrap();
         let mut node = Node::new(board);
         let actual = node.minimax(0, &mut HashTable::new(), AbortFlags::new());
-        let expected = Ok(Evaluation::OpponentCheckmate(0));
+        let expected = Ok(PovEvaluation::OpponentCheckmate(0));
 
         assert_eq!(actual, expected);
     }
@@ -134,7 +134,7 @@ mod test {
         let board = Board::from_fen("5k2/5p1p/p3p2P/3p2Q1/8/2Pq2P1/1P3PK1/8 w - - 1 37").unwrap();
         let mut node = Node::new(board);
         let actual = node.minimax(1, &mut HashTable::new(), AbortFlags::new());
-        let expected = Ok(Evaluation::PlayerCheckmate(1));
+        let expected = Ok(PovEvaluation::PlayerCheckmate(1));
 
         assert_eq!(actual, expected);
     }
@@ -145,7 +145,7 @@ mod test {
         let board = Board::from_fen("8/8/1r3p2/1p6/p5kR/2rB2P1/5P1K/8 b - - 21 47").unwrap();
         let mut node = Node::new(board);
         let actual = node.minimax(2, &mut HashTable::new(), AbortFlags::new());
-        let expected = Ok(Evaluation::OpponentCheckmate(2));
+        let expected = Ok(PovEvaluation::OpponentCheckmate(2));
 
         assert_eq!(actual, expected);
     }
@@ -156,7 +156,7 @@ mod test {
         let board = Board::from_fen("8/7R/1r3p2/1p6/p5k1/2rB2P1/5P1K/8 w - - 20 47").unwrap();
         let mut node = Node::new(board);
         let actual = node.minimax(3, &mut HashTable::new(), AbortFlags::new());
-        let expected = Ok(Evaluation::PlayerCheckmate(3));
+        let expected = Ok(PovEvaluation::PlayerCheckmate(3));
 
         assert_eq!(actual, expected);
     }
@@ -168,7 +168,7 @@ mod test {
             Board::from_fen("6k1/pp4pp/4p3/3p4/1P1qn3/N3Q3/P2B2PP/2r3K1 w - - 0 21").unwrap();
         let mut node = Node::new(board);
         let actual = node.minimax(4, &mut HashTable::new(), AbortFlags::new());
-        let expected = Ok(Evaluation::OpponentCheckmate(4));
+        let expected = Ok(PovEvaluation::OpponentCheckmate(4));
 
         assert_eq!(actual, expected);
     }

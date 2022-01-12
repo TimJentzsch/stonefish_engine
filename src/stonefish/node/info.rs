@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::stonefish::{evaluation::Evaluation, types::Line};
+use crate::stonefish::{pov_evaluation::PovEvaluation, types::Line};
 
 use super::Node;
 
@@ -24,12 +24,12 @@ impl Node {
     pub fn send_info(&self, duration: Duration) {
         // The evaluation of the current position
         let score = match self.evaluation {
-            Evaluation::Centipawns(cp) => format!("cp {}", cp),
-            Evaluation::PlayerCheckmate(plies) => {
+            PovEvaluation::Centipawns(cp) => format!("cp {}", cp),
+            PovEvaluation::PlayerCheckmate(plies) => {
                 // Convert plies to moves
                 format!("mate {}", (plies as f32 / 2.0).ceil() as i32)
             }
-            Evaluation::OpponentCheckmate(plies) => {
+            PovEvaluation::OpponentCheckmate(plies) => {
                 // Convert plies to moves
                 format!("mate {}", -((plies as f32 / 2.0).ceil() as i32))
             }
