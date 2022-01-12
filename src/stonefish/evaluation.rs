@@ -34,6 +34,15 @@ impl Evaluation {
         }
     }
 
+    /// Construct a checkmate, given the player who gives the checkmate and the number of plies they need.
+    #[cfg(test)]
+    pub fn from_checkmating_player(checkmating: Player, plies: usize) -> Self {
+        match checkmating {
+            Player::White => Self::WhiteCheckmate(plies),
+            Player::Black => Self::BlackCheckmate(plies),
+        }
+    }
+
     /// Convert the evaluation to the point of view of the given player.
     pub fn to_pov(&self, player: Player) -> PovEvaluation {
         match player {

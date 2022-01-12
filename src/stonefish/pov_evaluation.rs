@@ -16,11 +16,13 @@ use std::cmp::Ordering;
 
 impl PovEvaluation {
     /// Determine if the evaluation is a forced checkmate.
+    #[allow(dead_code)]
     pub fn is_forced_mate(&self) -> bool {
         !matches!(self, &PovEvaluation::Centipawns(_))
     }
 
     /// Convert the evaluation to the view of the opponent.
+    #[allow(dead_code)]
     pub fn for_opponent(&self) -> Self {
         match self {
             PovEvaluation::Centipawns(mat) => PovEvaluation::Centipawns(-mat),
@@ -36,6 +38,7 @@ impl PovEvaluation {
     /// ```
     /// assert_eq!(PovEvaluation::PlayerCheckmate(3).previous_plie(), PovEvaluation::PlayerCheckmate(4));
     /// ```
+    #[allow(dead_code)]
     pub fn previous_plie(&self) -> Self {
         match self {
             PovEvaluation::Centipawns(mat) => PovEvaluation::Centipawns(*mat),

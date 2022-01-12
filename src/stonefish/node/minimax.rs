@@ -15,20 +15,11 @@ impl Node {
         beta: Evaluation,
         hash_table: &mut HashTable,
         abort_flags: AbortFlags,
-        children: Children,
+        mut children: Children,
     ) -> Result<Evaluation, SearchAborted> {
         // Expect the worst
         let mut cur_evaluation = Evaluation::BlackCheckmate(0);
         let mut alpha = alpha;
-
-        // Expand the node
-        let mut children = self.expand(hash_table);
-
-        if children.is_empty() {
-            // Update the evaluation with a more expensive analysis
-            self.evaluation = final_heuristic(self.evaluation, &self.board);
-            return Ok(self.evaluation);
-        }
 
         // Search through all moves to find the best option
         for child in &mut children {
@@ -66,7 +57,7 @@ impl Node {
         beta: Evaluation,
         hash_table: &mut HashTable,
         abort_flags: AbortFlags,
-        children: Children,
+        mut children: Children,
     ) -> Result<Evaluation, SearchAborted> {
         // Expect the worst
         let mut cur_evaluation = Evaluation::WhiteCheckmate(0);
@@ -138,7 +129,7 @@ impl Node {
         }
 
         // Expand the node
-        let mut children = self.expand(hash_table);
+        let children = self.expand(hash_table);
 
         if children.is_empty() {
             // Update the evaluation with a more expensive analysis

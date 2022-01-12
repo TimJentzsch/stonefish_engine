@@ -8,7 +8,7 @@ use std::{
 };
 
 use crate::{
-    stonefish::{abort_flags::AbortFlags, pov_evaluation::PovEvaluation, types::HashTable},
+    stonefish::{abort_flags::AbortFlags, evaluation::Evaluation, types::HashTable},
     uci::AbortFlag,
 };
 
@@ -36,7 +36,7 @@ impl Node {
         max_depth: Option<usize>,
         max_time: Option<Duration>,
         stop_flag: AbortFlag,
-    ) -> PovEvaluation {
+    ) -> Evaluation {
         let start = Instant::now();
         // When this flag is set to true, time has run out
         let time_flag: AbortFlag = Arc::new(AtomicBool::new(false));
@@ -115,16 +115,16 @@ mod tests {
 
     use pleco::Board;
 
-    use crate::stonefish::{pov_evaluation::PovEvaluation, node::Node};
+    use crate::stonefish::{evaluation::Evaluation, node::Node};
 
     fn assert_forced_mate(fen: &str, plies: usize) {
         let board = Board::from_fen(fen).unwrap();
-        let mut node = Node::new(board);
+        let mut node = Node::new(board.clone());
         node.iterative_deepening(Some(plies), None, Arc::new(AtomicBool::new(false)));
 
         assert_eq!(
             node.evaluation,
-            PovEvaluation::PlayerCheckmate(plies),
+            Evaluation::from_checkmating_player(board.turn(), plies),
             "fen: {}, eval: {:?}",
             fen,
             node.evaluation
