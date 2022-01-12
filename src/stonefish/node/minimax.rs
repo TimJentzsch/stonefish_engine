@@ -1,13 +1,11 @@
-use std::collections::HashMap;
-
 use crate::stonefish::{
     abort_flags::{AbortFlags, SearchAborted},
     evaluation::Evaluation,
+    heuristic::final_heuristic,
+    types::{HashTable, HashTableEntry},
 };
 
 use super::Node;
-
-pub type HashTable = HashMap<u64, Node>;
 
 impl Node {
     /// The implementation of minimax with alpha-beta-pruning.
@@ -22,9 +20,9 @@ impl Node {
         hash_table: &mut HashTable,
         abort_flags: AbortFlags,
     ) -> Result<Evaluation, SearchAborted> {
-        let zobrist = self.board.zobrist();
-
         if depth == 0 {
+            // Update the evaluation with a more expensive analysis
+            self.evaluation = final_heuristic(self.evaluation, &self.board);
             return Ok(self.evaluation);
         }
 
@@ -32,11 +30,16 @@ impl Node {
         abort_flags.check()?;
 
         // Check if the value has been cached
-        if let Some(cached_node) = hash_table.get(&zobrist) {
+        if let Some(HashTableEntry {
+            evaluation: cache_eval,
+            best_line: cache_line,
+            depth: cache_depth,
+        }) = hash_table.get(&self.board.zobrist())
+        {
             // Only use the cached value if it has sufficient depth
-            if cached_node.depth >= depth {
-                self.evaluation = cached_node.evaluation;
-                self.best_line = cached_node.best_line.clone();
+            if cache_eval.is_forced_mate() || *cache_depth >= depth {
+                self.evaluation = *cache_eval;
+                self.best_line = cache_line.clone();
                 return Ok(self.evaluation);
             }
         }
@@ -46,18 +49,11 @@ impl Node {
         let mut alpha = alpha;
 
         // Expand the node
-        let mut children = self.expand(depth == 1, hash_table);
+        let mut children = self.expand(hash_table);
 
         if children.is_empty() {
-            // There are no moves to play, check why
-            self.evaluation = if self.board.checkmate() {
-                Evaluation::OpponentCheckmate(0)
-            } else if self.board.stalemate() {
-                Evaluation::Centipawns(0)
-            } else {
-                self.evaluation
-            };
-
+            // Update the evaluation with a more expensive analysis
+            self.evaluation = final_heuristic(self.evaluation, &self.board);
             return Ok(self.evaluation);
         }
 
@@ -87,8 +83,9 @@ impl Node {
 
         // Keep depth and size up-to-date
         self.update_attributes(&children);
-        hash_table.insert(zobrist, self.clone());
-        Ok(cur_evaluation)
+        self.evaluation = cur_evaluation;
+        hash_table.insert(self.board.zobrist(), HashTableEntry::from_node(self));
+        Ok(self.evaluation)
     }
 
     /// The minimax search algorithm with alpha-beta-pruning.

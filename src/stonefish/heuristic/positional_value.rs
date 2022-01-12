@@ -1,7 +1,7 @@
 //! Evaluation of the positional value.
 //!
 //! Values inspired by https://www.chessprogramming.org/Simplified_Evaluation_Function
-use pleco::{BitBoard, Board, Piece, PieceType, Player, SQ};
+use pleco::{BitBoard, BitMove, Board, Piece, PieceType, Player, SQ};
 
 use super::material_value::get_piece_value;
 
@@ -78,9 +78,7 @@ fn is_endgame(board: &Board) -> bool {
 }
 
 /// Evaluate the position of the king.
-fn player_king_position(board: &Board, player: Player) -> i32 {
-    let piece_bb = board.piece_bb(player, PieceType::K);
-
+fn player_king_position(board: &Board, piece_bb: BitBoard, player: Player) -> i32 {
     if is_endgame(board) {
         let mut value = 0;
 
@@ -115,8 +113,7 @@ fn player_king_position(board: &Board, player: Player) -> i32 {
 }
 
 /// Evaluate the position of the pawns.
-fn player_pawn_position(board: &Board, player: Player) -> i32 {
-    let piece_bb = board.piece_bb(player, PieceType::P);
+fn player_pawn_position(_board: &Board, piece_bb: BitBoard, player: Player) -> i32 {
     let mut value = 0;
 
     // Being close to promotion is good
@@ -158,8 +155,7 @@ fn player_pawn_position(board: &Board, player: Player) -> i32 {
 }
 
 /// Evaluate the position of the knights.
-fn player_knight_position(board: &Board, player: Player) -> i32 {
-    let piece_bb = board.piece_bb(player, PieceType::N);
+fn player_knight_position(_board: &Board, piece_bb: BitBoard) -> i32 {
     let mut value = 0;
 
     // Avoid having knights on the borders
@@ -173,8 +169,7 @@ fn player_knight_position(board: &Board, player: Player) -> i32 {
 }
 
 /// Evaluate the position of the bishops.
-fn player_bishop_position(board: &Board, player: Player) -> i32 {
-    let piece_bb = board.piece_bb(player, PieceType::B);
+fn player_bishop_position(_board: &Board, piece_bb: BitBoard) -> i32 {
     let mut value = 0;
 
     // Avoid having bishops on the borders
@@ -188,8 +183,7 @@ fn player_bishop_position(board: &Board, player: Player) -> i32 {
 }
 
 /// Evaluate the position of the rooks.
-fn player_rook_position(board: &Board, player: Player) -> i32 {
-    let piece_bb = board.piece_bb(player, PieceType::R);
+fn player_rook_position(_board: &Board, piece_bb: BitBoard, player: Player) -> i32 {
     let mut value = 0;
 
     // Being on the 7th rank is good
@@ -214,8 +208,7 @@ fn player_rook_position(board: &Board, player: Player) -> i32 {
 }
 
 /// Evaluate the position of the queens.
-fn player_queen_position(board: &Board, player: Player) -> i32 {
-    let piece_bb = board.piece_bb(player, PieceType::Q);
+fn player_queen_position(_board: &Board, piece_bb: BitBoard) -> i32 {
     let mut value = 0;
 
     // Avoid having queens on the borders
@@ -229,14 +222,13 @@ fn player_queen_position(board: &Board, player: Player) -> i32 {
 
 /// The total piece position for the player.
 fn player_piece_position(board: &Board, player: Player) -> i32 {
-    player_king_position(board, player)
-        + player_pawn_position(board, player)
-        + player_knight_position(board, player)
-        + player_bishop_position(board, player)
-        + player_rook_position(board, player)
-        + player_queen_position(board, player)
+    player_king_position(board, board.piece_bb(player, PieceType::K), player)
+        + player_pawn_position(board, board.piece_bb(player, PieceType::P), player)
+        + player_knight_position(board, board.piece_bb(player, PieceType::N))
+        + player_bishop_position(board, board.piece_bb(player, PieceType::B))
+        + player_rook_position(board, board.piece_bb(player, PieceType::R), player)
+        + player_queen_position(board, board.piece_bb(player, PieceType::Q))
 }
-
 
 fn player_threat_value(board: &Board, player: Player) -> i32 {
     let mut value = 0;
@@ -257,19 +249,61 @@ fn player_threat_value(board: &Board, player: Player) -> i32 {
     value
 }
 
-/// Calculate the positional value for the current player.
-fn player_positional_value(board: &Board, player: Player) -> i32 {
-    player_piece_position(board, player) + player_threat_value(board, player)
+pub fn threat_value(board: &Board) -> i32 {
+    let player_threat = player_threat_value(board, board.turn());
+    let opponent_threat = player_threat_value(board, board.turn().other_player());
+
+    player_threat - opponent_threat
 }
 
 /// The current positional value.
 ///
 /// Returns a positive number if the current player has a positional advantage.
-pub fn positional_value(board: &Board) -> i32 {
-    let player_pos = player_positional_value(board, board.turn());
-    let opponent_pos = player_positional_value(board, board.turn().other_player());
+pub fn initial_positional_value(board: &Board) -> i32 {
+    let player_pos = player_piece_position(board, board.turn());
+    let opponent_pos = player_piece_position(board, board.turn().other_player());
 
     player_pos - opponent_pos
+}
+
+pub fn positional_piece_value(
+    piece_type: PieceType,
+    board: &Board,
+    piece_bb: BitBoard,
+    player: Player,
+) -> i32 {
+    match piece_type {
+        PieceType::P => player_pawn_position(board, piece_bb, player),
+        PieceType::N => player_knight_position(board, piece_bb),
+        PieceType::B => player_bishop_position(board, piece_bb),
+        PieceType::R => player_rook_position(board, piece_bb, player),
+        PieceType::Q => player_queen_position(board, piece_bb),
+        PieceType::K => player_king_position(board, piece_bb, player),
+        _ => 0,
+    }
+}
+
+/// The positional evaluation delta for a given move.
+pub fn move_positional_value(old_board: &Board, mv: BitMove, new_board: &Board) -> i32 {
+    let player = old_board.turn();
+    let src_sq = mv.get_src();
+    let dest_sq = mv.get_dest();
+
+    let old_piece = old_board.piece_at_sq(src_sq).type_of();
+    // The new piece can be different (if promoting)
+    let new_piece = new_board.piece_at_sq(dest_sq).type_of();
+
+    let old_pos_eval = positional_piece_value(old_piece, old_board, src_sq.to_bb(), player);
+    let new_pos_eval = positional_piece_value(new_piece, new_board, dest_sq.to_bb(), player);
+    // We also need to consider the change of capturing an opponent's piece
+    let capture_eval = if mv.is_capture() {
+        let capture_piece = old_board.piece_at_sq(dest_sq).type_of();
+        positional_piece_value(capture_piece, old_board, dest_sq.to_bb(), player.other_player())
+    } else {
+        0
+    };
+
+    new_pos_eval - old_pos_eval + capture_eval
 }
 
 #[cfg(test)]
@@ -277,7 +311,7 @@ mod tests {
     use pleco::{BitBoard, SQ};
 
     use crate::stonefish::heuristic::positional_value::{
-        BORDER_BB, CENTER_ONE_BB, CENTER_RING_BB, CORNER_BB, CENTER_TWO_BB,
+        BORDER_BB, CENTER_ONE_BB, CENTER_RING_BB, CENTER_TWO_BB, CORNER_BB,
     };
 
     #[test]

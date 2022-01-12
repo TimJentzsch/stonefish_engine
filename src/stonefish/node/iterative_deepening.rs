@@ -8,11 +8,11 @@ use std::{
 };
 
 use crate::{
-    stonefish::{abort_flags::AbortFlags, evaluation::Evaluation},
+    stonefish::{abort_flags::AbortFlags, evaluation::Evaluation, types::HashTable},
     uci::AbortFlag,
 };
 
-use super::{minimax::HashTable, Node};
+use super::Node;
 
 impl Node {
     /// Set a timer to abort the search.
@@ -55,7 +55,7 @@ impl Node {
             let (tx, rx) = mpsc::channel();
 
             let mut node = self.clone();
-            let children = node.reset().expand(false, &HashTable::new());
+            let children = node.reset().expand(&HashTable::new());
 
             // Search every move in a separate thread
             for child in &children {
@@ -173,6 +173,26 @@ mod tests {
 
         for fen in puzzle_fens {
             assert_forced_mate(fen, 5);
+        }
+    }
+
+    #[test]
+    fn should_not_wrongly_assume_mate() {
+        let fens = [
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            "8/r1N1k1pp/b4p2/3Qp3/P6q/4P3/2PP1PPP/R3K2R w KQ - 1 25",
+        ];
+
+        for fen in fens {
+            let mut node = Node::new(Board::from_fen(fen).unwrap());
+            node.iterative_deepening(Some(3), None, Arc::new(AtomicBool::new(false)));
+
+            assert!(
+                !node.evaluation.is_forced_mate(),
+                "'{}': {:?}",
+                fen,
+                node.evaluation
+            );
         }
     }
 }
