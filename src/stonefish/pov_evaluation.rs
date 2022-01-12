@@ -34,7 +34,7 @@ impl PovEvaluation {
     /// # Examples
     ///
     /// ```
-    /// assert_eq!(Evaluation::PlayerCheckmate(3).previous_plie(), Evaluation::PlayerCheckmate(4));
+    /// assert_eq!(PovEvaluation::PlayerCheckmate(3).previous_plie(), PovEvaluation::PlayerCheckmate(4));
     /// ```
     pub fn previous_plie(&self) -> Self {
         match self {
