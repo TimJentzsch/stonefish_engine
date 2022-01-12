@@ -250,20 +250,20 @@ fn player_threat_value(board: &Board, player: Player) -> i32 {
 }
 
 pub fn threat_value(board: &Board) -> i32 {
-    let player_threat = player_threat_value(board, board.turn());
-    let opponent_threat = player_threat_value(board, board.turn().other_player());
+    let white_threat = player_threat_value(board, Player::White);
+    let black_threat = player_threat_value(board, Player::Black);
 
-    player_threat - opponent_threat
+    white_threat - black_threat
 }
 
 /// The current positional value.
 ///
 /// Returns a positive number if the current player has a positional advantage.
 pub fn initial_positional_value(board: &Board) -> i32 {
-    let player_pos = player_piece_position(board, board.turn());
-    let opponent_pos = player_piece_position(board, board.turn().other_player());
+    let white_pos = player_piece_position(board, Player::White);
+    let back_pos = player_piece_position(board, Player::Black);
 
-    player_pos - opponent_pos
+    white_pos - back_pos
 }
 
 pub fn positional_piece_value(
@@ -298,12 +298,21 @@ pub fn move_positional_value(old_board: &Board, mv: BitMove, new_board: &Board) 
     // We also need to consider the change of capturing an opponent's piece
     let capture_eval = if mv.is_capture() {
         let capture_piece = old_board.piece_at_sq(dest_sq).type_of();
-        positional_piece_value(capture_piece, old_board, dest_sq.to_bb(), player.other_player())
+        positional_piece_value(
+            capture_piece,
+            old_board,
+            dest_sq.to_bb(),
+            player.other_player(),
+        )
     } else {
         0
     };
 
-    new_pos_eval - old_pos_eval + capture_eval
+    let change_for_turn = new_pos_eval - old_pos_eval + capture_eval;
+    match player {
+        Player::White => change_for_turn,
+        Player::Black => -change_for_turn,
+    }
 }
 
 #[cfg(test)]

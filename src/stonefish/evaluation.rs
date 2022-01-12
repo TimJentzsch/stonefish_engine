@@ -14,10 +14,22 @@ pub enum Evaluation {
 }
 use std::cmp::Ordering;
 
+use pleco::Player;
+
 impl Evaluation {
     /// Determine if the evaluation is a forced checkmate.
     pub fn is_forced_mate(&self) -> bool {
         !matches!(self, &Evaluation::Centipawns(_))
+    }
+
+    /// Construct a checkmate, given the player who got checkmated.
+    pub fn from_checkmated_player(checkmated: Player) -> Self {
+        match checkmated {
+            // White lost, Black can give a checkmate "in 0 plies"
+            Player::White => Self::BlackCheckmate(0),
+            // Black lost, White can give a checkmate "in 0 plies"
+            Player::Black => Self::WhiteCheckmate(0),
+        }
     }
 
     /// Convert the evaluation to the previous plie.

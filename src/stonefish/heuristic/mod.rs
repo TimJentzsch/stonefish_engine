@@ -5,56 +5,56 @@ use self::{
     positional_value::{move_positional_value, threat_value},
 };
 
-use super::pov_evaluation::PovEvaluation;
+use super::evaluation::Evaluation;
 
 mod material_value;
 mod positional_value;
 
 /// The initial heuristic value of a position.
-pub fn initial_heuristic(board: &Board) -> PovEvaluation {
+pub fn initial_heuristic(board: &Board) -> Evaluation {
     if board.checkmate() {
         // The player got checkmated, it's a win for the opponent
-        PovEvaluation::OpponentCheckmate(0)
+        Evaluation::from_checkmated_player(board.turn())
     } else {
         let mat_value = material_value::material_value(board);
         let pos_value = positional_value::initial_positional_value(board);
         let value = mat_value + pos_value;
 
-        PovEvaluation::Centipawns(value)
+        Evaluation::Centipawns(value)
     }
 }
 
 /// The rough heuristic evaluation for a given move, used for move ordering.
 pub fn move_heuristic(
-    old_eval: PovEvaluation,
+    old_eval: Evaluation,
     old_board: &Board,
     mv: BitMove,
     new_board: &Board,
-) -> PovEvaluation {
+) -> Evaluation {
     let delta =
         move_positional_value(old_board, mv, new_board) + material_move_delta(old_board, mv);
 
     let new_eval = match old_eval {
-        PovEvaluation::Centipawns(old_val) => PovEvaluation::Centipawns(old_val + delta),
+        Evaluation::Centipawns(old_val) => Evaluation::Centipawns(old_val + delta),
         _ => old_eval,
     };
 
-    new_eval.for_opponent()
+    new_eval
 }
 
 /// Determine the heuristic value of the final position.
-pub fn final_heuristic(old_eval: PovEvaluation, board: &Board) -> PovEvaluation {
+pub fn final_heuristic(old_eval: Evaluation, board: &Board) -> Evaluation {
     // First check if the board is in a final state
     let delta = if board.checkmate() {
-        return PovEvaluation::OpponentCheckmate(0);
+        return Evaluation::from_checkmated_player(board.turn());
     } else if board.stalemate() {
-        return PovEvaluation::Centipawns(0);
+        return Evaluation::Centipawns(0);
     } else {
         threat_value(board)
     };
 
     match old_eval {
-        PovEvaluation::Centipawns(old_val) => PovEvaluation::Centipawns(old_val + delta),
+        Evaluation::Centipawns(old_val) => Evaluation::Centipawns(old_val + delta),
         _ => old_eval,
     }
 }
@@ -64,13 +64,13 @@ mod tests {
     use pleco::Board;
 
     use crate::stonefish::{
-        pov_evaluation::PovEvaluation, types::HashTable, heuristic::initial_heuristic, node::Node,
+        evaluation::Evaluation, heuristic::initial_heuristic, node::Node, types::HashTable,
     };
 
     #[test]
     fn should_evaluate_start_position() {
         let board = Board::start_pos();
-        let expected = PovEvaluation::Centipawns(0);
+        let expected = Evaluation::Centipawns(0);
         let actual = initial_heuristic(&board);
 
         assert_eq!(actual, expected);
@@ -79,7 +79,7 @@ mod tests {
     #[test]
     fn should_evaluate_checkmate() {
         let board = Board::from_fen("k1R5/8/1K6/8/8/8/8/8 b - - 1 1").unwrap();
-        let expected = PovEvaluation::OpponentCheckmate(0);
+        let expected = Evaluation::WhiteCheckmate(0);
         let actual = initial_heuristic(&board);
 
         assert_eq!(actual, expected);
@@ -105,7 +105,7 @@ mod tests {
             let children = node.expand(&HashTable::new());
 
             for child in children {
-                let initial_heuristic = initial_heuristic(&child.board).for_opponent();
+                let initial_heuristic = initial_heuristic(&child.board);
                 let incremental_heuristic = child.evaluation.for_opponent();
 
                 assert_eq!(

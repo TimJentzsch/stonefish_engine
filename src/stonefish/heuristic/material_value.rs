@@ -25,14 +25,14 @@ fn player_material_value(board: &Board, player: Player) -> i32 {
     .sum()
 }
 
-/// The material value from the view of the current player.
+/// The material value of the current board.
 ///
-/// Returns a positive value for a material advantage.
+/// A positive number is an advantage for White.
 pub fn material_value(board: &Board) -> i32 {
-    let player_mat = player_material_value(board, board.turn());
-    let opponent_mat = player_material_value(board, board.turn().other_player());
+    let white_mat = player_material_value(board, Player::White);
+    let black_mat = player_material_value(board, Player::Black);
 
-    player_mat - opponent_mat
+    white_mat - black_mat
 }
 
 /// The change in material value of the given move.
@@ -49,5 +49,8 @@ pub fn material_move_delta(old_board: &Board, mv: BitMove) -> i32 {
         value += get_piece_value(mv.promo_piece()) - get_piece_value(PieceType::P)
     }
 
-    value
+    match old_board.turn() {
+        Player::White => value,
+        Player::Black => -value,
+    }
 }
