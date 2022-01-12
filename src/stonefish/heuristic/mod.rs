@@ -106,7 +106,7 @@ mod tests {
 
             for child in children {
                 let initial_heuristic = initial_heuristic(&child.board);
-                let incremental_heuristic = child.evaluation.for_opponent();
+                let incremental_heuristic = child.evaluation;
 
                 assert_eq!(
                     incremental_heuristic,
