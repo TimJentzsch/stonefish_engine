@@ -24,7 +24,7 @@ impl Node {
         // Search through all moves to find the best option
         for child in &mut children {
             let child_eval =
-                child.minimax_helper(depth - 1, alpha, beta, hash_table, abort_flags.clone());
+                child.minimax_helper(depth - 1, alpha, beta, hash_table, abort_flags.clone(), false);
 
             // Check if the search has been aborted
             if let Err(err) = child_eval {
@@ -46,7 +46,6 @@ impl Node {
 
         // Keep depth and size up-to-date
         self.update_attributes(&children);
-        // self.evaluation = cur_evaluation;
         hash_table.insert(self.board.zobrist(), HashTableEntry::from_node(self));
         Ok(self.evaluation)
     }
@@ -67,7 +66,7 @@ impl Node {
         // Search through all moves to find the best option
         for child in &mut children {
             let child_eval =
-                child.minimax_helper(depth - 1, alpha, beta, hash_table, abort_flags.clone());
+                child.minimax_helper(depth - 1, alpha, beta, hash_table, abort_flags.clone(), true);
 
             // Check if the search has been aborted
             if let Err(err) = child_eval {
@@ -105,6 +104,7 @@ impl Node {
         beta: Evaluation,
         hash_table: &mut HashTable,
         abort_flags: AbortFlags,
+        maximize: bool,
     ) -> Result<Evaluation, SearchAborted> {
         if depth == 0 {
             // Update the evaluation with a more expensive analysis
@@ -139,13 +139,10 @@ impl Node {
             return Ok(self.evaluation);
         }
 
-        match self.board.turn() {
-            pleco::Player::White => {
-                self.maximize(depth, alpha, beta, hash_table, abort_flags, children)
-            }
-            pleco::Player::Black => {
-                self.minimize(depth, alpha, beta, hash_table, abort_flags, children)
-            }
+        if maximize {
+            self.maximize(depth, alpha, beta, hash_table, abort_flags, children)
+        } else {
+            self.minimize(depth, alpha, beta, hash_table, abort_flags, children)
         }
     }
 
@@ -164,6 +161,7 @@ impl Node {
             Evaluation::WhiteCheckmate(0),
             hash_table,
             abort_flags,
+            self.board.turn() == pleco::Player::White,
         )
     }
 }
@@ -232,5 +230,23 @@ mod test {
         let expected = Ok(Evaluation::BlackCheckmate(4));
 
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn should_not_wrongly_assume_mate() {
+        let fens = [
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            "8/r1N1k1pp/b4p2/3Qp3/P6q/4P3/2PP1PPP/R3K2R w KQ - 1 25",
+        ];
+
+        for fen in fens {
+            let mut node = Node::new(Board::from_fen(fen).unwrap());
+            let evaluation = node
+                .minimax(3, &mut HashTable::new(), AbortFlags::new())
+                .unwrap();
+
+            assert_eq!(evaluation, node.evaluation);
+            assert!(!evaluation.is_forced_mate(), "'{}': {:?}", fen, evaluation);
+        }
     }
 }

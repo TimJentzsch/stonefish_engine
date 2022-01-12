@@ -185,13 +185,14 @@ mod tests {
 
         for fen in fens {
             let mut node = Node::new(Board::from_fen(fen).unwrap());
-            node.iterative_deepening(Some(3), None, Arc::new(AtomicBool::new(false)));
+            let evaluation = node.iterative_deepening(Some(3), None, Arc::new(AtomicBool::new(false)));
 
+            assert_eq!(evaluation, node.evaluation);
             assert!(
-                !node.evaluation.is_forced_mate(),
+                !evaluation.is_forced_mate(),
                 "'{}': {:?}",
                 fen,
-                node.evaluation
+                evaluation
             );
         }
     }

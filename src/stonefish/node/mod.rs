@@ -132,7 +132,6 @@ impl Node {
             let mv = best_child.board.last_move().unwrap();
             let mut best_line = best_child.best_line.clone();
             best_line.splice(0..0, [mv]);
-
             self.best_line = best_line;
         } else {
             self.best_line = vec![];
