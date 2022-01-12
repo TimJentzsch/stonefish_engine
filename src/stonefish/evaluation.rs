@@ -16,6 +16,8 @@ use std::cmp::Ordering;
 
 use pleco::Player;
 
+use super::pov_evaluation::PovEvaluation;
+
 impl Evaluation {
     /// Determine if the evaluation is a forced checkmate.
     pub fn is_forced_mate(&self) -> bool {
@@ -29,6 +31,22 @@ impl Evaluation {
             Player::White => Self::BlackCheckmate(0),
             // Black lost, White can give a checkmate "in 0 plies"
             Player::Black => Self::WhiteCheckmate(0),
+        }
+    }
+
+    /// Convert the evaluation to the point of view of the given player.
+    pub fn to_pov(&self, player: Player) -> PovEvaluation {
+        match player {
+            Player::White => match self {
+                Evaluation::Centipawns(value) => PovEvaluation::Centipawns(*value),
+                Evaluation::WhiteCheckmate(plies) => PovEvaluation::PlayerCheckmate(*plies),
+                Evaluation::BlackCheckmate(plies) => PovEvaluation::OpponentCheckmate(*plies),
+            },
+            Player::Black => match self {
+                Evaluation::Centipawns(value) => PovEvaluation::Centipawns(-*value),
+                Evaluation::WhiteCheckmate(plies) => PovEvaluation::OpponentCheckmate(*plies),
+                Evaluation::BlackCheckmate(plies) => PovEvaluation::PlayerCheckmate(*plies),
+            },
         }
     }
 

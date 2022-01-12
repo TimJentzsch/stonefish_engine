@@ -22,8 +22,10 @@ impl Node {
 
     /// Send info about the current position to the engine.
     pub fn send_info(&self, duration: Duration) {
+        let pov_evaluation = self.evaluation.to_pov(self.board.turn());
+
         // The evaluation of the current position
-        let score = match self.evaluation {
+        let score = match pov_evaluation {
             PovEvaluation::Centipawns(cp) => format!("cp {}", cp),
             PovEvaluation::PlayerCheckmate(plies) => {
                 // Convert plies to moves
@@ -38,7 +40,7 @@ impl Node {
         // Example from Stockfish:
         // info depth 1 seldepth 1 multipv 1 score cp 112 nodes 20 nps 20000 tbhits 0 time 1 pv e2e4
         println!(
-            "info depth {} seldepth {} multipv {} score {} nodes {} nps {} tbhits {} time {} pv {}  ",
+            "info depth {} seldepth {} multipv {} score {} nodes {} nps {} tbhits {} time {} pv {}",
             // Depth
             self.depth,
             // Seldepth
