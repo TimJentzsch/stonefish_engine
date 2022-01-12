@@ -1,7 +1,7 @@
-use pleco::{BitMove, Board};
+use pleco::{BitMove, Board, Player};
 
 use super::{
-    pov_evaluation::PovEvaluation,
+    evaluation::Evaluation,
     heuristic::move_heuristic,
     types::{Children, HashTable, HashTableEntry, Line},
 };
@@ -16,7 +16,7 @@ pub struct Node {
     /// The current board state.
     pub board: Board,
     /// The current evaluation for this position.
-    pub evaluation: PovEvaluation,
+    pub evaluation: Evaluation,
     /// The best line to play from this position.
     pub best_line: Line,
     /// The current size of the tree.
@@ -62,7 +62,7 @@ impl Node {
 
     /// Create a new node from a given move.
     pub fn new_from_move(
-        old_eval: PovEvaluation,
+        old_eval: Evaluation,
         old_board: &Board,
         mv: BitMove,
         hash_table: &HashTable,
@@ -122,8 +122,9 @@ impl Node {
             depth = depth.max(child.depth + 1);
 
             best_child = if let Some(prev_best) = best_child {
-                // The child eval is out of the perspective from the opponent, so worse is better for us
-                if child.evaluation < prev_best.evaluation
+                // Choose the best outcome for the current player
+                if self.board.turn() == Player::White && child.evaluation > prev_best.evaluation
+                    || child.evaluation < prev_best.evaluation
                 {
                     Some(child)
                 } else {
@@ -139,7 +140,7 @@ impl Node {
 
         if let Some(best_child) = best_child {
             // The evaluation of the node is the evaluation of the best child
-            self.evaluation = best_child.evaluation.for_opponent().previous_plie();
+            self.evaluation = best_child.evaluation;
             // The best line to play is the best child and its line
             let mv = best_child.board.last_move().unwrap();
             let mut best_line = best_child.best_line.clone();
@@ -199,7 +200,7 @@ impl PartialEq for Node {
 mod tests {
     use pleco::Board;
 
-    use crate::stonefish::{pov_evaluation::PovEvaluation, node::Node, types::HashTable};
+    use crate::stonefish::{evaluation::Evaluation, node::Node, types::HashTable};
 
     #[test]
     fn should_expand_startpos() {
@@ -236,7 +237,7 @@ mod tests {
         assert_eq!(pos.depth, 0);
         assert_eq!(pos.sel_depth, 0);
         assert_eq!(pos.best_line.len(), 0);
-        assert_eq!(pos.evaluation, PovEvaluation::OpponentCheckmate(0));
+        assert_eq!(pos.evaluation, Evaluation::WhiteCheckmate(0));
 
         let children = pos.expand(&HashTable::new());
         assert_eq!(children.len(), 0);
@@ -244,6 +245,6 @@ mod tests {
         assert_eq!(pos.depth, 0);
         assert_eq!(pos.sel_depth, 0);
         assert_eq!(pos.best_line.len(), 0);
-        assert_eq!(pos.evaluation, PovEvaluation::OpponentCheckmate(0));
+        assert_eq!(pos.evaluation, Evaluation::WhiteCheckmate(0));
     }
 }
