@@ -140,7 +140,12 @@ impl UciEngine for Stonefish {
         };
 
         // Search for the best move
-        root.iterative_deepening(max_depth, max_time, stop_flag);
+        root.iterative_deepening(
+            max_depth,
+            max_time,
+            self.repitition_table.clone(),
+            stop_flag,
+        );
         root.send_best_move();
     }
 }
