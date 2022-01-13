@@ -1,7 +1,7 @@
 //! Evaluation of the positional value.
 //!
 //! Values inspired by https://www.chessprogramming.org/Simplified_Evaluation_Function
-use pleco::{BitBoard, BitMove, Board, Piece, PieceType, Player, SQ};
+use pleco::{BitBoard, BitMove, Board, PieceType, Player, SQ};
 
 use super::material_value::get_piece_value;
 
@@ -22,37 +22,14 @@ pub const CENTER_TWO_BB: BitBoard =
     BitBoard(0b00000000_00000000_00111100_00111100_00111100_00111100_00000000_00000000);
 
 struct Guard {
-    origin: (SQ, Piece),
-    target: (SQ, Piece),
+    origin: (SQ, Player, PieceType),
+    target: (SQ, Player, PieceType),
 }
 
 impl Guard {
-    fn new(origin: (SQ, Piece), target: (SQ, Piece)) -> Self {
+    fn new(origin: (SQ, Player, PieceType), target: (SQ, Player, PieceType)) -> Self {
         Self { origin, target }
     }
-}
-
-/// Gets the squares and pieces that the player guards (defends or attacks).
-fn player_guards(board: &Board, player: Player) -> Vec<Guard> {
-    let piece_locations = board.get_piece_locations();
-
-    let mut guards = vec![];
-
-    for (sq, piece) in piece_locations {
-        // Only consider pieces of the current player
-        if piece.player().unwrap_or_else(|| player.other_player()) != player {
-            continue;
-        }
-
-        // Look at every square that the piece attacks
-        for attack_sq in board.attacks_from(piece.type_of(), sq, player) {
-            let target = board.piece_at_sq(attack_sq);
-
-            guards.push(Guard::new((sq, piece), (attack_sq, target)));
-        }
-    }
-
-    guards
 }
 
 /// Score how many pieces have the corresponding positions.
@@ -127,7 +104,7 @@ fn player_pawn_position(_board: &Board, piece_bb: BitBoard, player: Player) -> i
         Player::White => BitBoard::RANK_6,
         Player::Black => BitBoard::RANK_3,
     };
-    value += (rank_six_bb & piece_bb).count_bits() as i32 * 30;
+    value += (rank_six_bb & piece_bb).count_bits() as i32 * 35;
 
     let center_files_bb = BitBoard::FILE_D | BitBoard::FILE_E;
 
@@ -136,20 +113,20 @@ fn player_pawn_position(_board: &Board, piece_bb: BitBoard, player: Player) -> i
         Player::White => BitBoard::RANK_5 & center_files_bb,
         Player::Black => BitBoard::RANK_4 & center_files_bb,
     };
-    value += (rank_five_center_bb & piece_bb).count_bits() as i32 * 25;
+    value += (rank_five_center_bb & piece_bb).count_bits() as i32 * 30;
 
     let rank_four_center_bb = match player {
         Player::White => BitBoard::RANK_4 & center_files_bb,
         Player::Black => BitBoard::RANK_5 & center_files_bb,
     };
-    value += (rank_four_center_bb & piece_bb).count_bits() as i32 * 20;
+    value += (rank_four_center_bb & piece_bb).count_bits() as i32 * 25;
 
     // Not developing the center pawns is bad
     let rank_two_center_bb = match player {
         Player::White => BitBoard::RANK_2 & center_files_bb,
         Player::Black => BitBoard::RANK_7 & center_files_bb,
     };
-    value += (rank_two_center_bb & piece_bb).count_bits() as i32 * -20;
+    value += (rank_two_center_bb & piece_bb).count_bits() as i32 * -40;
 
     value
 }
@@ -159,11 +136,11 @@ fn player_knight_position(_board: &Board, piece_bb: BitBoard) -> i32 {
     let mut value = 0;
 
     // Avoid having knights on the borders
-    value += score_position(piece_bb, BORDER_BB, -30);
+    value += score_position(piece_bb, BORDER_BB, -25);
     value += score_position(piece_bb, CORNER_BB, -20);
     // Move knights to the center
-    value += score_position(piece_bb, CENTER_ONE_BB, 20);
-    value += score_position(piece_bb, CENTER_RING_BB, 10);
+    value += score_position(piece_bb, CENTER_ONE_BB, 15);
+    value += score_position(piece_bb, CENTER_RING_BB, 5);
 
     value
 }
@@ -173,7 +150,7 @@ fn player_bishop_position(_board: &Board, piece_bb: BitBoard) -> i32 {
     let mut value = 0;
 
     // Avoid having bishops on the borders
-    value += score_position(piece_bb, BORDER_BB, -15);
+    value += score_position(piece_bb, BORDER_BB, -25);
     value += score_position(piece_bb, CORNER_BB, -10);
     // Move bishops to the center
     value += score_position(piece_bb, CENTER_ONE_BB, 15);
@@ -230,19 +207,55 @@ fn player_piece_position(board: &Board, player: Player) -> i32 {
         + player_queen_position(board, board.piece_bb(player, PieceType::Q))
 }
 
+/// Gets the squares and pieces that the player guards (defends or attacks).
+fn player_guards(board: &Board, player: Player) -> Vec<Guard> {
+    let piece_locations = board.get_piece_locations();
+
+    let mut guards = vec![];
+
+    for (sq, piece) in piece_locations {
+        if let Some(origin_player) = piece.player() {
+            // Only consider pieces of the current player
+            if origin_player != player {
+                continue;
+            }
+
+            let piece_type = piece.type_of();
+
+            // Look at every square that the piece attacks
+            for attack_sq in board.attacks_from(piece_type, sq, origin_player) {
+                let target = board.piece_at_sq(attack_sq);
+
+                if let Some(target_player) = target.player() {
+                    guards.push(Guard::new(
+                        (sq, origin_player, piece.type_of()),
+                        (attack_sq, target_player, target.type_of()),
+                    ));
+                }
+            }
+        }
+    }
+
+    guards
+}
+
 fn player_threat_value(board: &Board, player: Player) -> i32 {
     let mut value = 0;
 
     let guards = player_guards(board, player);
 
     for guard in guards {
-        let (_, origin_piece) = guard.origin;
-        let (_, target_piece) = guard.target;
+        let (_, origin_player, origin_piece) = guard.origin;
+        let (_, target_player, target_piece) = guard.target;
 
-        if origin_piece.player() == target_piece.player() {
-            value += 20;
+        if origin_player == target_player {
+            // It's good to defend pieces
+            value += 10;
         } else {
-            value += get_piece_value(target_piece.type_of()) / 10;
+            // It's good to attack pieces of higher value
+            let attack_value =
+                get_piece_value(target_piece).saturating_sub(get_piece_value(origin_piece)) / 20;
+            value += attack_value;
         }
     }
 
@@ -298,7 +311,12 @@ pub fn move_positional_value(old_board: &Board, mv: BitMove, new_board: &Board) 
     // We also need to consider the change of capturing an opponent's piece
     let capture_eval = if mv.is_capture() {
         let capture_piece = old_board.piece_at_sq(dest_sq).type_of();
-        positional_piece_value(capture_piece, old_board, dest_sq.to_bb(), player.other_player())
+        positional_piece_value(
+            capture_piece,
+            old_board,
+            dest_sq.to_bb(),
+            player.other_player(),
+        )
     } else {
         0
     };
