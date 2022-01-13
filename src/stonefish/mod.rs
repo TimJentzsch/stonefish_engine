@@ -17,10 +17,14 @@ use crate::{
     },
 };
 
+use self::types::RepititionTable;
+
 #[derive(Debug, Clone)]
 pub struct Stonefish {
     /// The board depicting the current position.
     board: Board,
+    /// Table to track threefold repition.
+    repitition_table: RepititionTable,
 }
 
 impl Stonefish {
@@ -28,6 +32,7 @@ impl Stonefish {
     pub fn new() -> Stonefish {
         Stonefish {
             board: Board::start_pos(),
+            repitition_table: RepititionTable::new(),
         }
     }
 }
@@ -57,6 +62,7 @@ impl UciEngine for Stonefish {
     fn new_game(&mut self) {
         // Reset the board
         self.board = Board::start_pos();
+        self.repitition_table = RepititionTable::new();
     }
 
     fn change_position(&mut self, pos: UciPosition, moves: Vec<String>) {
@@ -74,6 +80,10 @@ impl UciEngine for Stonefish {
             }
         };
 
+        // TODO: Check if the new position is a successor of the old one
+        let mut repitition_table = RepititionTable::new();
+        repitition_table.insert(&new_board);
+
         // Try to apply the moves
         for move_str in moves {
             // Convert to lowercase to make sure it can be parsed
@@ -82,10 +92,13 @@ impl UciEngine for Stonefish {
                 println!("info string '{}' is an invalid move string.", move_str);
                 return;
             }
+
+            repitition_table.insert(&new_board);
         }
 
         // Save the new board
         self.board = new_board;
+        self.repitition_table = repitition_table;
     }
 
     fn go(&mut self, go_config: UciGoConfig, stop_flag: AbortFlag) {
