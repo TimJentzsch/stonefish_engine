@@ -69,7 +69,12 @@ impl Node {
 
                 let mut hash_table = HashTable::new();
                 let mut repitition_table = repitition_table.clone();
-                repitition_table.insert(&child.board);
+                if repitition_table.insert_check_draw(&self.board) {
+                    repitition_table.remove(&self.board);
+                    child.evaluation = Evaluation::DRAW;
+                    tx.send((child, Ok(Evaluation::DRAW))).unwrap();
+                    continue;
+                }
 
                 let abort_flags = AbortFlags::from_flags(stop_flag.clone(), time_flag.clone());
 

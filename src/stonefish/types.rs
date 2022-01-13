@@ -47,6 +47,17 @@ impl RepititionTable {
         }
     }
 
+    /// Add the board to the repitition table and check if it's a draw.
+    /// 
+    /// It is a draw if the position occurred 3 times (a player has to claim the draw)
+    /// or if the position occurred 5 times (automatic draw).
+    /// 
+    /// See <https://lichess.org/faq#threefold>
+    pub fn insert_check_draw(&mut self, board: &Board) -> bool {
+        let occurances = self.insert(board);
+        occurances == 3 || occurances >= 5
+    }
+
     /// Remove the board to the repitition table.
     ///
     /// Returns the new count for the given board.
@@ -69,6 +80,7 @@ impl RepititionTable {
     }
 
     /// Get the number of times this position has been seen in the current line.
+    #[allow(dead_code)]
     pub fn get(&self, board: &Board) -> usize {
         *self.0.get(&board.zobrist()).unwrap_or(&0)
     }
