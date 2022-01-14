@@ -8,7 +8,11 @@ use std::{
 };
 
 use crate::{
-    stonefish::{abort_flags::AbortFlags, evaluation::Evaluation, types::HashTable},
+    stonefish::{
+        abort_flags::AbortFlags,
+        evaluation::Evaluation,
+        types::{HashTable, RepetitionTable},
+    },
     uci::AbortFlag,
 };
 
@@ -35,6 +39,7 @@ impl Node {
         &mut self,
         max_depth: Option<usize>,
         max_time: Option<Duration>,
+        repetition_table: RepetitionTable,
         stop_flag: AbortFlag,
     ) -> Evaluation {
         let start = Instant::now();
@@ -63,12 +68,25 @@ impl Node {
                 let mut child = child.clone();
 
                 let mut hash_table = HashTable::new();
+                let mut repetition_table = repetition_table.clone();
+                if repetition_table.insert_check_draw(&self.board) {
+                    repetition_table.remove(&self.board);
+                    child.evaluation = Evaluation::DRAW;
+                    tx.send((child, Ok(Evaluation::DRAW))).unwrap();
+                    continue;
+                }
+
                 let abort_flags = AbortFlags::from_flags(stop_flag.clone(), time_flag.clone());
 
                 thread::Builder::new()
                     .name(child.board.last_move().unwrap().stringify())
                     .spawn(move || {
-                        let result = child.minimax(depth - 1, &mut hash_table, abort_flags);
+                        let result = child.minimax(
+                            depth - 1,
+                            &mut hash_table,
+                            &mut repetition_table,
+                            abort_flags,
+                        );
                         tx.send((child, result)).unwrap();
                     })
                     .unwrap();
@@ -115,12 +133,17 @@ mod tests {
 
     use pleco::Board;
 
-    use crate::stonefish::{evaluation::Evaluation, node::Node};
+    use crate::stonefish::{evaluation::Evaluation, node::Node, types::RepetitionTable};
 
     fn assert_forced_mate(fen: &str, plies: usize) {
         let board = Board::from_fen(fen).unwrap();
         let mut node = Node::new(board);
-        node.iterative_deepening(Some(plies), None, Arc::new(AtomicBool::new(false)));
+        node.iterative_deepening(
+            Some(plies),
+            None,
+            RepetitionTable::new(),
+            Arc::new(AtomicBool::new(false)),
+        );
 
         assert_eq!(
             node.evaluation,
@@ -185,7 +208,12 @@ mod tests {
 
         for fen in fens {
             let mut node = Node::new(Board::from_fen(fen).unwrap());
-            node.iterative_deepening(Some(3), None, Arc::new(AtomicBool::new(false)));
+            node.iterative_deepening(
+                Some(3),
+                None,
+                RepetitionTable::new(),
+                Arc::new(AtomicBool::new(false)),
+            );
 
             assert!(
                 !node.evaluation.is_forced_mate(),
