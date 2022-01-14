@@ -2,7 +2,7 @@ use crate::stonefish::{
     abort_flags::{AbortFlags, SearchAborted},
     evaluation::Evaluation,
     heuristic::final_heuristic,
-    types::{HashTable, HashTableEntry, RepititionTable},
+    types::{HashTable, HashTableEntry, RepetitionTable},
 };
 
 use super::Node;
@@ -18,19 +18,19 @@ impl Node {
         alpha: Evaluation,
         beta: Evaluation,
         hash_table: &mut HashTable,
-        repitition_table: &mut RepititionTable,
+        repetition_table: &mut RepetitionTable,
         abort_flags: AbortFlags,
     ) -> Result<Evaluation, SearchAborted> {
-        // Check for repitition
-        if repitition_table.insert_check_draw(&self.board) {
-            repitition_table.remove(&self.board);
+        // Check for repetition
+        if repetition_table.insert_check_draw(&self.board) {
+            repetition_table.remove(&self.board);
             return Ok(Evaluation::DRAW);
         }
 
         if depth == 0 {
             // Update the evaluation with a more expensive analysis
             self.evaluation = final_heuristic(self.evaluation, &self.board);
-            repitition_table.remove(&self.board);
+            repetition_table.remove(&self.board);
             return Ok(self.evaluation);
         }
 
@@ -49,7 +49,7 @@ impl Node {
         //     if cache_eval.is_forced_mate() || *cache_depth >= depth {
         //         self.evaluation = *cache_eval;
         //         self.best_line = cache_line.clone();
-        //         repitition_table.remove(&self.board);
+        //         repetition_table.remove(&self.board);
         //         return Ok(self.evaluation);
         //     }
         // }
@@ -64,7 +64,7 @@ impl Node {
         if children.is_empty() {
             // Update the evaluation with a more expensive analysis
             self.evaluation = final_heuristic(self.evaluation, &self.board);
-            repitition_table.remove(&self.board);
+            repetition_table.remove(&self.board);
             return Ok(self.evaluation);
         }
 
@@ -77,14 +77,14 @@ impl Node {
                     beta,
                     alpha,
                     hash_table,
-                    repitition_table,
+                    repetition_table,
                     abort_flags.clone(),
                 );
 
             // Check if the search has been aborted
             if let Err(err) = child_eval {
                 self.update_attributes(&children);
-                repitition_table.remove(&self.board);
+                repetition_table.remove(&self.board);
                 return Err(err);
             }
 
@@ -104,7 +104,7 @@ impl Node {
         self.update_attributes(&children);
         self.evaluation = cur_evaluation;
         hash_table.insert(self.board.zobrist(), HashTableEntry::from_node(self));
-        repitition_table.remove(&self.board);
+        repetition_table.remove(&self.board);
         Ok(self.evaluation)
     }
 
@@ -115,7 +115,7 @@ impl Node {
         &mut self,
         depth: usize,
         hash_table: &mut HashTable,
-        repitition_table: &mut RepititionTable,
+        repetition_table: &mut RepetitionTable,
         abort_flags: AbortFlags,
     ) -> Result<Evaluation, SearchAborted> {
         self.minimax_helper(
@@ -123,7 +123,7 @@ impl Node {
             Evaluation::OpponentCheckmate(0),
             Evaluation::OpponentCheckmate(0),
             hash_table,
-            repitition_table,
+            repetition_table,
             abort_flags,
         )
     }
@@ -137,7 +137,7 @@ mod test {
         abort_flags::AbortFlags,
         evaluation::Evaluation,
         node::{minimax::HashTable, Node},
-        types::RepititionTable,
+        types::RepetitionTable,
     };
 
     #[test]
@@ -148,7 +148,7 @@ mod test {
         let actual = node.minimax(
             0,
             &mut HashTable::new(),
-            &mut RepititionTable::new(),
+            &mut RepetitionTable::new(),
             AbortFlags::new(),
         );
         let expected = Ok(Evaluation::OpponentCheckmate(0));
@@ -164,7 +164,7 @@ mod test {
         let actual = node.minimax(
             1,
             &mut HashTable::new(),
-            &mut RepititionTable::new(),
+            &mut RepetitionTable::new(),
             AbortFlags::new(),
         );
         let expected = Ok(Evaluation::PlayerCheckmate(1));
@@ -180,7 +180,7 @@ mod test {
         let actual = node.minimax(
             2,
             &mut HashTable::new(),
-            &mut RepititionTable::new(),
+            &mut RepetitionTable::new(),
             AbortFlags::new(),
         );
         let expected = Ok(Evaluation::OpponentCheckmate(2));
@@ -196,7 +196,7 @@ mod test {
         let actual = node.minimax(
             3,
             &mut HashTable::new(),
-            &mut RepititionTable::new(),
+            &mut RepetitionTable::new(),
             AbortFlags::new(),
         );
         let expected = Ok(Evaluation::PlayerCheckmate(3));
@@ -213,7 +213,7 @@ mod test {
         let actual = node.minimax(
             4,
             &mut HashTable::new(),
-            &mut RepititionTable::new(),
+            &mut RepetitionTable::new(),
             AbortFlags::new(),
         );
         let expected = Ok(Evaluation::OpponentCheckmate(4));

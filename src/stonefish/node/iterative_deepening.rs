@@ -11,7 +11,7 @@ use crate::{
     stonefish::{
         abort_flags::AbortFlags,
         evaluation::Evaluation,
-        types::{HashTable, RepititionTable},
+        types::{HashTable, RepetitionTable},
     },
     uci::AbortFlag,
 };
@@ -39,7 +39,7 @@ impl Node {
         &mut self,
         max_depth: Option<usize>,
         max_time: Option<Duration>,
-        repitition_table: RepititionTable,
+        repetition_table: RepetitionTable,
         stop_flag: AbortFlag,
     ) -> Evaluation {
         let start = Instant::now();
@@ -68,9 +68,9 @@ impl Node {
                 let mut child = child.clone();
 
                 let mut hash_table = HashTable::new();
-                let mut repitition_table = repitition_table.clone();
-                if repitition_table.insert_check_draw(&self.board) {
-                    repitition_table.remove(&self.board);
+                let mut repetition_table = repetition_table.clone();
+                if repetition_table.insert_check_draw(&self.board) {
+                    repetition_table.remove(&self.board);
                     child.evaluation = Evaluation::DRAW;
                     tx.send((child, Ok(Evaluation::DRAW))).unwrap();
                     continue;
@@ -84,7 +84,7 @@ impl Node {
                         let result = child.minimax(
                             depth - 1,
                             &mut hash_table,
-                            &mut repitition_table,
+                            &mut repetition_table,
                             abort_flags,
                         );
                         tx.send((child, result)).unwrap();
@@ -133,7 +133,7 @@ mod tests {
 
     use pleco::Board;
 
-    use crate::stonefish::{evaluation::Evaluation, node::Node, types::RepititionTable};
+    use crate::stonefish::{evaluation::Evaluation, node::Node, types::RepetitionTable};
 
     fn assert_forced_mate(fen: &str, plies: usize) {
         let board = Board::from_fen(fen).unwrap();
@@ -141,7 +141,7 @@ mod tests {
         node.iterative_deepening(
             Some(plies),
             None,
-            RepititionTable::new(),
+            RepetitionTable::new(),
             Arc::new(AtomicBool::new(false)),
         );
 
@@ -211,7 +211,7 @@ mod tests {
             node.iterative_deepening(
                 Some(3),
                 None,
-                RepititionTable::new(),
+                RepetitionTable::new(),
                 Arc::new(AtomicBool::new(false)),
             );
 

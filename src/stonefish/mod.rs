@@ -17,14 +17,14 @@ use crate::{
     },
 };
 
-use self::types::RepititionTable;
+use self::types::RepetitionTable;
 
 #[derive(Debug, Clone)]
 pub struct Stonefish {
     /// The board depicting the current position.
     board: Board,
-    /// Table to track threefold repition.
-    repitition_table: RepititionTable,
+    /// Table to track threefold repetion.
+    repetition_table: RepetitionTable,
 }
 
 impl Stonefish {
@@ -32,7 +32,7 @@ impl Stonefish {
     pub fn new() -> Stonefish {
         Stonefish {
             board: Board::start_pos(),
-            repitition_table: RepititionTable::new(),
+            repetition_table: RepetitionTable::new(),
         }
     }
 
@@ -43,11 +43,11 @@ impl Stonefish {
     ///
     /// However, if the `moves` are not provided, we try to reconstruct
     /// the history from the last searched position.
-    /// This will allow us to properly recognize threefold-repititions.
+    /// This will allow us to properly recognize threefold-repetitions.
     fn reconstruct_move_history(
         old_board: &Board,
         new_board: &Board,
-        repitition_table: &mut RepititionTable,
+        repetition_table: &mut RepetitionTable,
     ) {
         let new_zobrist = new_board.zobrist();
 
@@ -62,7 +62,7 @@ impl Stonefish {
             mv_one_board.apply_move(mv_one);
 
             if mv_one_board.zobrist() == new_zobrist {
-                repitition_table.insert(&mv_one_board);
+                repetition_table.insert(&mv_one_board);
                 return;
             }
 
@@ -71,16 +71,16 @@ impl Stonefish {
                 mv_two_board.apply_move(mv_two);
 
                 if mv_two_board.zobrist() == new_zobrist {
-                    repitition_table.insert(&mv_one_board);
-                    repitition_table.insert(&mv_two_board);
+                    repetition_table.insert(&mv_one_board);
+                    repetition_table.insert(&mv_two_board);
                     return;
                 }
             }
         }
 
         // Otherwise, fall back to a new position
-        *repitition_table = RepititionTable::new();
-        repitition_table.insert(new_board);
+        *repetition_table = RepetitionTable::new();
+        repetition_table.insert(new_board);
     }
 }
 
@@ -109,7 +109,7 @@ impl UciEngine for Stonefish {
     fn new_game(&mut self) {
         // Reset the board
         self.board = Board::start_pos();
-        self.repitition_table = RepititionTable::new();
+        self.repetition_table = RepetitionTable::new();
     }
 
     fn change_position(&mut self, pos: UciPosition, moves: Vec<String>) {
@@ -129,13 +129,13 @@ impl UciEngine for Stonefish {
 
         // We clone the table so that we can fall back to the old position
         // if parts of the moves are invalid
-        let mut repitition_table = self.repitition_table.clone();
+        let mut repetition_table = self.repetition_table.clone();
 
         if moves.len() == 0 {
             // No move history was provided, try to reconstruct it
-            Self::reconstruct_move_history(&self.board, &new_board, &mut repitition_table);
+            Self::reconstruct_move_history(&self.board, &new_board, &mut repetition_table);
         } else {
-            self.repitition_table = RepititionTable::new();
+            self.repetition_table = RepetitionTable::new();
 
             // Try to apply the moves
             for move_str in moves {
@@ -146,13 +146,13 @@ impl UciEngine for Stonefish {
                     return;
                 }
 
-                repitition_table.insert(&new_board);
+                repetition_table.insert(&new_board);
             }
         }
 
         // Save the new position
         self.board = new_board;
-        self.repitition_table = repitition_table;
+        self.repetition_table = repetition_table;
     }
 
     fn go(&mut self, go_config: UciGoConfig, stop_flag: AbortFlag) {
@@ -197,7 +197,7 @@ impl UciEngine for Stonefish {
         root.iterative_deepening(
             max_depth,
             max_time,
-            self.repitition_table.clone(),
+            self.repetition_table.clone(),
             stop_flag,
         );
         root.send_best_move();

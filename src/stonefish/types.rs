@@ -25,9 +25,9 @@ pub type Line = Vec<BitMove>;
 pub type Children = Vec<Node>;
 
 #[derive(Debug, Clone)]
-pub struct RepititionTable(HashMap<u64, usize>);
+pub struct RepetitionTable(HashMap<u64, usize>);
 
-impl RepititionTable {
+impl RepetitionTable {
     pub fn new() -> Self {
         Self(HashMap::new())
     }
