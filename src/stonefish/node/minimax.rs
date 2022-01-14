@@ -38,20 +38,21 @@ impl Node {
         abort_flags.check()?;
 
         // Check if the value has been cached
-        if let Some(HashTableEntry {
-            evaluation: cache_eval,
-            best_line: cache_line,
-            depth: cache_depth,
-        }) = hash_table.get(&self.board.zobrist())
-        {
-            // Only use the cached value if it has sufficient depth
-            if cache_eval.is_forced_mate() || *cache_depth >= depth {
-                self.evaluation = *cache_eval;
-                self.best_line = cache_line.clone();
-                repitition_table.remove(&self.board);
-                return Ok(self.evaluation);
-            }
-        }
+        // TODO: Fix this breaking the evaluation
+        // if let Some(HashTableEntry {
+        //     evaluation: cache_eval,
+        //     best_line: cache_line,
+        //     depth: cache_depth,
+        // }) = hash_table.get(&self.board.zobrist())
+        // {
+        //     // Only use the cached value if it has sufficient depth
+        //     if cache_eval.is_forced_mate() || *cache_depth >= depth {
+        //         self.evaluation = *cache_eval;
+        //         self.best_line = cache_line.clone();
+        //         repitition_table.remove(&self.board);
+        //         return Ok(self.evaluation);
+        //     }
+        // }
 
         // Expect the worst
         let mut cur_evaluation = Evaluation::OpponentCheckmate(0);

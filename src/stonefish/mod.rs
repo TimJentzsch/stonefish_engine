@@ -58,7 +58,7 @@ impl Stonefish {
 
         // Second, look up to two moves ahead
         for mv_one in old_board.generate_moves() {
-            let mut mv_one_board = new_board.clone();
+            let mut mv_one_board = old_board.clone();
             mv_one_board.apply_move(mv_one);
 
             if mv_one_board.zobrist() == new_zobrist {
@@ -66,7 +66,7 @@ impl Stonefish {
                 return;
             }
 
-            for mv_two in old_board.generate_moves() {
+            for mv_two in mv_one_board.generate_moves() {
                 let mut mv_two_board = mv_one_board.clone();
                 mv_two_board.apply_move(mv_two);
 
