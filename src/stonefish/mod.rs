@@ -35,6 +35,53 @@ impl Stonefish {
             repitition_table: RepititionTable::new(),
         }
     }
+
+    /// Try to reconstruct the move history from the last searched position.
+    ///
+    /// This is _not_ part of the UCI specification and should be provided
+    /// directly via the `position` command.
+    ///
+    /// However, if the `moves` are not provided, we try to reconstruct
+    /// the history from the last searched position.
+    /// This will allow us to properly recognize threefold-repititions.
+    fn reconstruct_move_history(
+        old_board: &Board,
+        new_board: &Board,
+        repitition_table: &mut RepititionTable,
+    ) {
+        let new_zobrist = new_board.zobrist();
+
+        // First, check if the same position is being searched again
+        if old_board.zobrist() == new_zobrist {
+            return;
+        }
+
+        // Second, look up to two moves ahead
+        for mv_one in old_board.generate_moves() {
+            let mut mv_one_board = new_board.clone();
+            mv_one_board.apply_move(mv_one);
+
+            if mv_one_board.zobrist() == new_zobrist {
+                repitition_table.insert(&mv_one_board);
+                return;
+            }
+
+            for mv_two in old_board.generate_moves() {
+                let mut mv_two_board = mv_one_board.clone();
+                mv_two_board.apply_move(mv_two);
+
+                if mv_two_board.zobrist() == new_zobrist {
+                    repitition_table.insert(&mv_one_board);
+                    repitition_table.insert(&mv_two_board);
+                    return;
+                }
+            }
+        }
+
+        // Otherwise, fall back to a new position
+        *repitition_table = RepititionTable::new();
+        repitition_table.insert(new_board);
+    }
 }
 
 impl UciEngine for Stonefish {
@@ -80,23 +127,30 @@ impl UciEngine for Stonefish {
             }
         };
 
-        // TODO: Check if the new position is a successor of the old one
-        let mut repitition_table = RepititionTable::new();
-        repitition_table.insert(&new_board);
+        // We clone the table so that we can fall back to the old position
+        // if parts of the moves are invalid
+        let mut repitition_table = self.repitition_table.clone();
 
-        // Try to apply the moves
-        for move_str in moves {
-            // Convert to lowercase to make sure it can be parsed
-            if !new_board.apply_uci_move(move_str.to_lowercase().as_str()) {
-                // The move couldn't be applied, don't change the board
-                println!("info string '{}' is an invalid move string.", move_str);
-                return;
+        if moves.len() == 0 {
+            // No move history was provided, try to reconstruct it
+            Self::reconstruct_move_history(&self.board, &new_board, &mut repitition_table);
+        } else {
+            self.repitition_table = RepititionTable::new();
+
+            // Try to apply the moves
+            for move_str in moves {
+                // Convert to lowercase to make sure it can be parsed
+                if !new_board.apply_uci_move(move_str.to_lowercase().as_str()) {
+                    // The move couldn't be applied, don't change the board
+                    println!("info string '{}' is an invalid move string.", move_str);
+                    return;
+                }
+
+                repitition_table.insert(&new_board);
             }
-
-            repitition_table.insert(&new_board);
         }
 
-        // Save the new board
+        // Save the new position
         self.board = new_board;
         self.repitition_table = repitition_table;
     }
