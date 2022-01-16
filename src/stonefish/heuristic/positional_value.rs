@@ -113,7 +113,7 @@ fn player_pawn_position(_board: &Board, piece_bb: BitBoard, player: Player) -> i
     value += (get_player_rank_bb(5, player) & center_files_bb & piece_bb).count_bits() as i32 * 40;
     value += (get_player_rank_bb(4, player) & center_files_bb & piece_bb).count_bits() as i32 * 35;
     // Not developing the center pawns is bad
-    value += (get_player_rank_bb(4, player) & center_files_bb & piece_bb).count_bits() as i32 * -40;
+    value += (get_player_rank_bb(2, player) & center_files_bb & piece_bb).count_bits() as i32 * -40;
 
     value
 }
@@ -297,11 +297,13 @@ pub fn move_positional_value(old_board: &Board, mv: BitMove, new_board: &Board) 
 
 #[cfg(test)]
 mod tests {
-    use pleco::{BitBoard, SQ};
+    use pleco::{BitBoard, Board, PieceType, Player, SQ};
 
     use crate::stonefish::heuristic::positional_value::{
         BORDER_BB, CENTER_ONE_BB, CENTER_RING_BB, CENTER_TWO_BB, CORNER_BB,
     };
+
+    use super::player_pawn_position;
 
     #[test]
     fn should_calculate_center_one_bb() {
@@ -344,5 +346,47 @@ mod tests {
         let expected = CENTER_ONE_BB | CENTER_RING_BB;
 
         assert_eq!(CENTER_TWO_BB, expected);
+    }
+
+    #[test]
+    fn should_calculate_player_pawn_position() {
+        // A FEN string with the corresponding evaluation
+        // The position should be symmetrical for both sides
+        let parameters = [
+            // No pawns pushed
+            ("4k3/pppppppp/8/8/8/8/PPPPPPPP/4K3 w - - 0 1", -80),
+            // Single pushed e pawn
+            ("4k3/pppp1ppp/4p3/8/8/4P3/PPPP1PPP/4K3 w - - 0 1", -40),
+            // Double pushed e pawn
+            ("4k3/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/4K3 w - - 0 1", -5),
+            // Single pushed d pawn
+            ("4k3/ppp1pppp/3p4/8/8/3P4/PPP1PPPP/4K3 w - - 0 1", -40),
+            // Double pushed d pawn
+            ("4k3/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/4K3 w - - 0 1", -5),
+            // Single pushed both e and d pawn
+            ("4k3/ppp2ppp/3pp3/8/8/3PP3/PPP2PPP/4K3 w - - 0 1", 0),
+            // Double pushed both e and d pawn
+            ("4k3/ppp2ppp/8/3pp3/3PP3/8/PPP2PPP/4K3 w - - 0 1", 70),
+            // Almost promotion b pawn
+            ("4k3/pPp2ppp/8/8/8/8/PpP2PPP/4K3 w - - 0 1", 70),
+        ];
+
+        for (fen, expected) in parameters {
+            let board = Board::from_fen(fen).unwrap();
+
+            let actual_white = player_pawn_position(
+                &board,
+                board.piece_bb(Player::White, PieceType::P),
+                Player::White,
+            );
+            let actual_black = player_pawn_position(
+                &board,
+                board.piece_bb(Player::Black, PieceType::P),
+                Player::Black,
+            );
+
+            assert_eq!(actual_white, expected, "Evaluation wrong for White: {fen}");
+            assert_eq!(actual_black, expected, "Evaluation wrong for Black: {fen}");
+        }
     }
 }
