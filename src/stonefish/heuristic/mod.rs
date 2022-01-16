@@ -64,7 +64,10 @@ mod tests {
     use pleco::Board;
 
     use crate::stonefish::{
-        evaluation::Evaluation, heuristic::initial_heuristic, node::Node, types::HashTable,
+        evaluation::Evaluation,
+        heuristic::{final_heuristic, initial_heuristic},
+        node::Node,
+        types::HashTable,
     };
 
     #[test]
@@ -117,6 +120,43 @@ mod tests {
                     child.board.last_move().unwrap().stringify()
                 );
             }
+        }
+    }
+
+    #[test]
+    fn should_prefer_good_openings() {
+        // The left side is the better opening, the right side the worse one
+        let parameters = [
+            (
+                "e2e4 is better than b8c3",
+                "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1",
+                "rnbqkbnr/pppppppp/8/8/8/2N5/PPPPPPPP/R1BQKBNR w KQkq - 0 1",
+            ),
+            (
+                "e2e4 is better than g1g3",
+                "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1",
+                "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R w KQkq - 0 1",
+            ),
+            (
+                "e2e4 is better than e2e3",
+                "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1",
+                "rnbqkbnr/pppppppp/8/8/8/4P3/PPPP1PPP/RNBQKBNR w KQkq - 0 1",
+            ),
+        ];
+
+        for (name, fen_better, fen_worse) in parameters {
+            let board_better = Board::from_fen(fen_better).unwrap();
+            let board_worse = Board::from_fen(fen_worse).unwrap();
+
+            let initial_eval_better = initial_heuristic(&board_better);
+            let initial_eval_worse = initial_heuristic(&board_worse);
+
+            assert!(initial_eval_better > initial_eval_worse, "Initial: {name}");
+
+            let final_eval_better = final_heuristic(initial_eval_better, &board_better);
+            let final_eval_worse = final_heuristic(initial_eval_worse, &board_worse);
+
+            assert!(final_eval_better > final_eval_worse, "Final: {name}");
         }
     }
 }

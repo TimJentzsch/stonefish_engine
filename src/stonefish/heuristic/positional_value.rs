@@ -300,7 +300,7 @@ mod tests {
     use pleco::{BitBoard, Board, PieceType, Player, SQ};
 
     use crate::stonefish::heuristic::positional_value::{
-        BORDER_BB, CENTER_ONE_BB, CENTER_RING_BB, CENTER_TWO_BB, CORNER_BB, player_knight_position,
+        player_knight_position, BORDER_BB, CENTER_ONE_BB, CENTER_RING_BB, CENTER_TWO_BB, CORNER_BB, initial_positional_value,
     };
 
     use super::player_pawn_position;
@@ -412,17 +412,45 @@ mod tests {
         for (fen, expected) in parameters {
             let board = Board::from_fen(fen).unwrap();
 
-            let actual_white = player_knight_position(
-                &board,
-                board.piece_bb(Player::White, PieceType::N),
-            );
-            let actual_black = player_knight_position(
-                &board,
-                board.piece_bb(Player::Black, PieceType::N),
-            );
+            let actual_white =
+                player_knight_position(&board, board.piece_bb(Player::White, PieceType::N));
+            let actual_black =
+                player_knight_position(&board, board.piece_bb(Player::Black, PieceType::N));
 
             assert_eq!(actual_white, expected, "Evaluation wrong for White: {fen}");
             assert_eq!(actual_black, expected, "Evaluation wrong for Black: {fen}");
+        }
+    }
+
+    #[test]
+    fn should_prefer_good_openings() {
+        // The left side is the better opening, the right side the worse one
+        let parameters = [
+            (
+                "e2e4 is better than b8c3",
+                "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1",
+                "rnbqkbnr/pppppppp/8/8/8/2N5/PPPPPPPP/R1BQKBNR w KQkq - 0 1",
+            ),
+            (
+                "e2e4 is better than g1g3",
+                "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1",
+                "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R w KQkq - 0 1",
+            ),
+            (
+                "e2e4 is better than e2e3",
+                "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1",
+                "rnbqkbnr/pppppppp/8/8/8/4P3/PPPP1PPP/RNBQKBNR w KQkq - 0 1",
+            ),
+        ];
+
+        for (name, fen_better, fen_worse) in parameters {
+            let board_better = Board::from_fen(fen_better).unwrap();
+            let board_worse = Board::from_fen(fen_worse).unwrap();
+
+            let eval_better = initial_positional_value(&board_better);
+            let eval_worse = initial_positional_value(&board_worse);
+
+            assert!(eval_better > eval_worse, "{name}");
         }
     }
 }
