@@ -65,7 +65,7 @@ mod tests {
 
     use crate::stonefish::{
         evaluation::Evaluation,
-        heuristic::{final_heuristic, initial_heuristic},
+        heuristic::{final_heuristic, initial_heuristic, move_heuristic},
         node::Node,
         types::HashTable,
     };
@@ -119,6 +119,30 @@ mod tests {
                     parent_heuristic,
                     child.board.last_move().unwrap().stringify()
                 );
+            }
+        }
+    }
+
+    #[test]
+    fn should_properly_update_heuristic_for_move_sequences() {
+        let parameters = [(
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            ["e2e3", "d7d5", "d1h5", "g8h6", "h5g5", "g7g6", "g5e5"],
+        )];
+
+        for (fen, moves) in parameters {
+            let mut cur_board = Board::from_fen(fen).unwrap();
+            let mut cur_eval = initial_heuristic(&cur_board);
+
+            for uci_move in moves {
+                let mut new_board = cur_board.clone();
+                assert!(new_board.apply_uci_move(uci_move));
+                let mv = new_board.last_move().unwrap();
+                cur_eval = move_heuristic(cur_eval, &cur_board, mv, &new_board);
+                let fresh_eval = initial_heuristic(&new_board);
+
+                assert_eq!(cur_eval, fresh_eval, "{fen} after {uci_move}");
+                cur_board = new_board;
             }
         }
     }
