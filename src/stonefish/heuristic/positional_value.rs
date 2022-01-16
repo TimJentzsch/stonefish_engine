@@ -21,17 +21,6 @@ pub const CENTER_RING_BB: BitBoard =
 pub const CENTER_TWO_BB: BitBoard =
     BitBoard(0b00000000_00000000_00111100_00111100_00111100_00111100_00000000_00000000);
 
-struct Guard {
-    origin: (SQ, Player, PieceType),
-    target: (SQ, Player, PieceType),
-}
-
-impl Guard {
-    fn new(origin: (SQ, Player, PieceType), target: (SQ, Player, PieceType)) -> Self {
-        Self { origin, target }
-    }
-}
-
 /// Score how many pieces have the corresponding positions.
 fn score_position(piece_bb: BitBoard, position_bb: BitBoard, score: i32) -> i32 {
     (piece_bb & position_bb).count_bits() as i32 * score
@@ -207,66 +196,50 @@ fn player_piece_position(board: &Board, player: Player) -> i32 {
         + player_queen_position(board, board.piece_bb(player, PieceType::Q))
 }
 
-/// Gets the squares and pieces that the player guards (defends or attacks).
-fn player_guards(board: &Board, player: Player) -> Vec<Guard> {
+pub fn threat_value(board: &Board) -> i32 {
+    let mut value = 0;
     let piece_locations = board.get_piece_locations();
 
-    let mut guards = vec![];
-
     for (sq, piece) in piece_locations {
-        if let Some(origin_player) = piece.player() {
-            // Only consider pieces of the current player
-            if origin_player != player {
+        let piece_type = piece.type_of();
+        let player = match piece.player() {
+            Some(p) => p,
+            None => continue,
+        };
+
+        if !piece_type.is_real() || player != board.turn() {
+            continue;
+        }
+
+        let mut defenders = vec![];
+        let mut attackers = vec![];
+
+        // Determine all defenders and attackers of this piece
+        for attacker_sq in board.attackers_to(sq, board.occupied()) {
+            let other_piece = board.piece_at_sq(attacker_sq);
+            let other_piece_type = other_piece.type_of();
+            let other_player = match other_piece.player() {
+                Some(p) => p,
+                None => continue,
+            };
+
+            if !piece_type.is_real() {
                 continue;
             }
 
-            let piece_type = piece.type_of();
-
-            // Look at every square that the piece attacks
-            for attack_sq in board.attacks_from(piece_type, sq, origin_player) {
-                let target = board.piece_at_sq(attack_sq);
-
-                if let Some(target_player) = target.player() {
-                    guards.push(Guard::new(
-                        (sq, origin_player, piece.type_of()),
-                        (attack_sq, target_player, target.type_of()),
-                    ));
-                }
+            if player == other_player {
+                defenders.push(other_piece_type);
+            } else {
+                attackers.push(other_piece_type);
             }
         }
-    }
 
-    guards
-}
-
-fn player_threat_value(board: &Board, player: Player) -> i32 {
-    let mut value = 0;
-
-    let guards = player_guards(board, player);
-
-    for guard in guards {
-        let (_, origin_player, origin_piece) = guard.origin;
-        let (_, target_player, target_piece) = guard.target;
-
-        if origin_player == target_player {
-            // It's good to defend pieces
-            value += 10;
-        } else {
-            // It's good to attack pieces of higher value
-            let attack_value =
-                get_piece_value(target_piece).saturating_sub(get_piece_value(origin_piece)) / 20;
-            value += attack_value;
+        if defenders.len() == 0 && attackers.len() > 0 {
+            value -= get_piece_value(piece_type);
         }
     }
 
     value
-}
-
-pub fn threat_value(board: &Board) -> i32 {
-    let player_threat = player_threat_value(board, board.turn());
-    let opponent_threat = player_threat_value(board, board.turn().other_player());
-
-    player_threat - opponent_threat
 }
 
 /// The current positional value.
