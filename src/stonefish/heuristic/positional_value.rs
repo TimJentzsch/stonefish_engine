@@ -20,6 +20,17 @@ pub const CENTER_RING_BB: BitBoard =
 /// The bitboard of the center squares (radius 2).
 pub const CENTER_TWO_BB: BitBoard =
     BitBoard(0b00000000_00000000_00111100_00111100_00111100_00111100_00000000_00000000);
+// An array of all rank bitboards.
+pub const RANK_BBS: [BitBoard; 8] = [
+    BitBoard::RANK_1,
+    BitBoard::RANK_2,
+    BitBoard::RANK_3,
+    BitBoard::RANK_4,
+    BitBoard::RANK_5,
+    BitBoard::RANK_6,
+    BitBoard::RANK_7,
+    BitBoard::RANK_8,
+];
 
 /// Score how many pieces have the corresponding positions.
 fn score_position(piece_bb: BitBoard, position_bb: BitBoard, score: i32) -> i32 {
@@ -78,44 +89,31 @@ fn player_king_position(board: &Board, piece_bb: BitBoard, player: Player) -> i3
     }
 }
 
+/// Get the bitboard of the given rank from the player's perspective.
+fn get_player_rank_bb(rank: usize, player: Player) -> BitBoard {
+    let index = if player == Player::White {
+        rank - 1
+    } else {
+        8 - rank
+    };
+
+    RANK_BBS[index]
+}
+
 /// Evaluate the position of the pawns.
 fn player_pawn_position(_board: &Board, piece_bb: BitBoard, player: Player) -> i32 {
     let mut value = 0;
 
-    // Being close to promotion is good
-    let rank_seven_bb = match player {
-        Player::White => BitBoard::RANK_7,
-        Player::Black => BitBoard::RANK_2,
-    };
-    value += (rank_seven_bb & piece_bb).count_bits() as i32 * 50;
-
-    let rank_six_bb = match player {
-        Player::White => BitBoard::RANK_6,
-        Player::Black => BitBoard::RANK_3,
-    };
-    value += (rank_six_bb & piece_bb).count_bits() as i32 * 35;
-
     let center_files_bb = BitBoard::FILE_D | BitBoard::FILE_E;
 
+    // Being close to promotion is good
+    value += (get_player_rank_bb(7, player) & piece_bb).count_bits() as i32 * 70;
+    value += (get_player_rank_bb(6, player) & piece_bb).count_bits() as i32 * 50;
     // Developing the center pawns is good
-    let rank_five_center_bb = match player {
-        Player::White => BitBoard::RANK_5 & center_files_bb,
-        Player::Black => BitBoard::RANK_4 & center_files_bb,
-    };
-    value += (rank_five_center_bb & piece_bb).count_bits() as i32 * 30;
-
-    let rank_four_center_bb = match player {
-        Player::White => BitBoard::RANK_4 & center_files_bb,
-        Player::Black => BitBoard::RANK_5 & center_files_bb,
-    };
-    value += (rank_four_center_bb & piece_bb).count_bits() as i32 * 25;
-
+    value += (get_player_rank_bb(5, player) & center_files_bb & piece_bb).count_bits() as i32 * 40;
+    value += (get_player_rank_bb(4, player) & center_files_bb & piece_bb).count_bits() as i32 * 35;
     // Not developing the center pawns is bad
-    let rank_two_center_bb = match player {
-        Player::White => BitBoard::RANK_2 & center_files_bb,
-        Player::Black => BitBoard::RANK_7 & center_files_bb,
-    };
-    value += (rank_two_center_bb & piece_bb).count_bits() as i32 * -40;
+    value += (get_player_rank_bb(4, player) & center_files_bb & piece_bb).count_bits() as i32 * -40;
 
     value
 }
@@ -157,14 +155,14 @@ fn player_rook_position(_board: &Board, piece_bb: BitBoard, player: Player) -> i
         Player::White => BitBoard::RANK_7,
         Player::Black => BitBoard::RANK_2,
     };
-    value += score_position(piece_bb, rank_seven_bb, 15);
+    value += score_position(piece_bb, rank_seven_bb, 25);
 
     // Being in the center is good
     let center_bb = match player {
         Player::White => SQ::D1.to_bb() | SQ::E1.to_bb(),
         Player::Black => SQ::D8.to_bb() | SQ::E8.to_bb(),
     };
-    value += score_position(piece_bb, center_bb, 10);
+    value += score_position(piece_bb, center_bb, 20);
 
     // Avoid the left and right borders
     let border_bb = (BitBoard::FILE_A | BitBoard::FILE_H) ^ BORDER_BB;
