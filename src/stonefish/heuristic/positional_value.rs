@@ -300,7 +300,7 @@ mod tests {
     use pleco::{BitBoard, Board, PieceType, Player, SQ};
 
     use crate::stonefish::heuristic::positional_value::{
-        BORDER_BB, CENTER_ONE_BB, CENTER_RING_BB, CENTER_TWO_BB, CORNER_BB,
+        BORDER_BB, CENTER_ONE_BB, CENTER_RING_BB, CENTER_TWO_BB, CORNER_BB, player_knight_position,
     };
 
     use super::player_pawn_position;
@@ -383,6 +383,42 @@ mod tests {
                 &board,
                 board.piece_bb(Player::Black, PieceType::P),
                 Player::Black,
+            );
+
+            assert_eq!(actual_white, expected, "Evaluation wrong for White: {fen}");
+            assert_eq!(actual_black, expected, "Evaluation wrong for Black: {fen}");
+        }
+    }
+
+    #[test]
+    fn should_calculate_player_knight_position() {
+        // A FEN string with the corresponding evaluation
+        // The position should be symmetrical for both sides
+        let parameters = [
+            // Start position knights
+            ("1n2k1n1/8/8/8/8/8/8/1N2K1N1 w - - 0 1", -50),
+            // Single developed b knight
+            ("4k3/8/2n5/8/8/2N5/8/4K3 w - - 0 1", 5),
+            // b knight developed
+            ("4k1n1/8/2n5/8/8/2N5/8/4K1N1 w - - 0 1", -20),
+            // Single developed g knight
+            ("4k3/8/5n2/8/8/5N2/8/4K3 w - - 0 1", 5),
+            // g knight developed
+            ("1n2k3/8/5n2/8/8/5N2/8/1N2K3 w - - 0 1", -20),
+            // one corner knight
+            ("n3k3/8/8/8/8/8/8/N3K3 w - - 0 1", -45),
+        ];
+
+        for (fen, expected) in parameters {
+            let board = Board::from_fen(fen).unwrap();
+
+            let actual_white = player_knight_position(
+                &board,
+                board.piece_bb(Player::White, PieceType::N),
+            );
+            let actual_black = player_knight_position(
+                &board,
+                board.piece_bb(Player::Black, PieceType::N),
             );
 
             assert_eq!(actual_white, expected, "Evaluation wrong for White: {fen}");
