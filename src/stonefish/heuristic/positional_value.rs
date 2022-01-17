@@ -167,13 +167,13 @@ fn player_rook_position(_board: &Board, piece_bb: BitBoard, player: Player) -> i
 
     // Being in the center after castling is also good
     let center_bb = match player {
-        Player::White => SQ::G1.to_bb(),
-        Player::Black => SQ::G8.to_bb(),
+        Player::White => SQ::F1.to_bb(),
+        Player::Black => SQ::F8.to_bb(),
     };
     value += score_position(piece_bb, center_bb, 10);
 
     // Avoid the left and right borders
-    let border_bb = (BitBoard::FILE_A | BitBoard::FILE_H) ^ BORDER_BB;
+    let border_bb = (BitBoard::FILE_A | BitBoard::FILE_H) ^ CORNER_BB;
     value += score_position(piece_bb, border_bb, -5);
 
     value
@@ -308,8 +308,9 @@ mod tests {
     use pleco::{BitBoard, Board, PieceType, Player, SQ};
 
     use crate::stonefish::heuristic::positional_value::{
-        initial_positional_value, player_king_position, player_knight_position, threat_value,
-        BORDER_BB, CENTER_ONE_BB, CENTER_RING_BB, CENTER_TWO_BB, CORNER_BB,
+        initial_positional_value, player_king_position, player_knight_position,
+        player_rook_position, threat_value, BORDER_BB, CENTER_ONE_BB, CENTER_RING_BB,
+        CENTER_TWO_BB, CORNER_BB,
     };
 
     use super::player_pawn_position;
@@ -455,6 +456,42 @@ mod tests {
             let actual_black = player_king_position(
                 &board,
                 board.piece_bb(Player::Black, PieceType::K),
+                Player::Black,
+            );
+
+            assert_eq!(actual_white, expected, "Evaluation wrong for White: {fen}");
+            assert_eq!(actual_black, expected, "Evaluation wrong for Black: {fen}");
+        }
+    }
+
+    #[test]
+    fn should_calculate_player_rook_position() {
+        // A FEN string with the corresponding evaluation
+        // The position should be symmetrical for both sides
+        let parameters = [
+            // Start position h rook
+            ("1q2k3/8/8/8/8/8/8/2Q1K3 w - - 0 1", 0),
+            // Castled h rook
+            ("5rk1/8/8/8/8/8/8/5RK1 w - - 0 1", 10),
+            // Center h rook
+            ("2kr4/8/8/8/8/8/8/2KR4 w - - 0 1", 20),
+            // Start position a rook
+            ("r3k3/8/8/8/8/8/8/R3K3 w - - 0 1", 0),
+            // Castled a rook
+            ("2kr4/8/8/8/8/8/8/2KR4 w - - 0 1", 20),
+        ];
+
+        for (fen, expected) in parameters {
+            let board = Board::from_fen(fen).unwrap();
+
+            let actual_white = player_rook_position(
+                &board,
+                board.piece_bb(Player::White, PieceType::R),
+                Player::White,
+            );
+            let actual_black = player_rook_position(
+                &board,
+                board.piece_bb(Player::Black, PieceType::R),
                 Player::Black,
             );
 
