@@ -166,6 +166,16 @@ mod tests {
                 "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1",
                 "rnbqkbnr/pppppppp/8/8/8/4P3/PPPP1PPP/RNBQKBNR w KQkq - 0 1",
             ),
+            (
+                "castling is better than walking the king first",
+                "rnbqk1nr/pp1p1pbp/4p1p1/2p5/2B1P3/2N2N2/PPPP1PPP/R1BQ1RK1 b kq - 1 5",
+                "rnbqk1nr/pp1p1pbp/4p1p1/2p5/2B1P3/2N2N2/PPPP1PPP/R1BQ1K1R b kq - 1 5",
+            ),
+            (
+                "castling is better than walking the king second",
+                "r1bqk1nr/pp1p1pbp/2n1p1p1/2p5/2B1P3/2N2N2/PPPP1PPP/R1BQ2KR b kq - 3 6",
+                "r1bqk1nr/pp1p1pbp/2n1p1p1/2p5/2B1P3/2N2N2/PPPP1PPP/R1BQ1RK1 w kq - 2 6",
+            ),
         ];
 
         for (name, fen_better, fen_worse) in parameters {
@@ -175,12 +185,18 @@ mod tests {
             let initial_eval_better = initial_heuristic(&board_better);
             let initial_eval_worse = initial_heuristic(&board_worse);
 
-            assert!(initial_eval_better > initial_eval_worse, "Initial: {name}");
+            assert!(
+                initial_eval_better > initial_eval_worse,
+                "Initial: {initial_eval_better:?} <= {initial_eval_worse:?} {name}"
+            );
 
             let final_eval_better = final_heuristic(initial_eval_better, &board_better);
             let final_eval_worse = final_heuristic(initial_eval_worse, &board_worse);
 
-            assert!(final_eval_better > final_eval_worse, "Final: {name}");
+            assert!(
+                final_eval_better > final_eval_worse,
+                "Final: {final_eval_better:?} <= {final_eval_worse:?} {name}"
+            );
         }
     }
 }

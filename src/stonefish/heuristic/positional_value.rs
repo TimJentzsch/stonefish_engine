@@ -57,6 +57,7 @@ fn is_endgame(board: &Board) -> bool {
 /// Evaluate the position of the king.
 fn player_king_position(board: &Board, piece_bb: BitBoard, player: Player) -> i32 {
     if is_endgame(board) {
+        println!("Endgame!!");
         let mut value = 0;
 
         // Stay away from the borders
@@ -76,14 +77,14 @@ fn player_king_position(board: &Board, piece_bb: BitBoard, player: Player) -> i3
             Player::White => SQ::G1.to_bb() | SQ::C1.to_bb(),
             Player::Black => SQ::G8.to_bb() | SQ::C8.to_bb(),
         };
-        value += (piece_bb & castle_bb).count_bits() as i32 * 50;
+        value += score_position(piece_bb, castle_bb, 50);
 
         // Don't stand around in the center
         let center_bb = match player {
             Player::White => SQ::E1.to_bb() | SQ::D1.to_bb() | SQ::E2.to_bb() | SQ::D2.to_bb(),
             Player::Black => SQ::E8.to_bb() | SQ::D8.to_bb() | SQ::E7.to_bb() | SQ::D7.to_bb(),
         };
-        value += (piece_bb & center_bb).count_bits() as i32 * -20;
+        value += score_position(piece_bb, center_bb, -20);
 
         value
     }
@@ -307,8 +308,8 @@ mod tests {
     use pleco::{BitBoard, Board, PieceType, Player, SQ};
 
     use crate::stonefish::heuristic::positional_value::{
-        initial_positional_value, player_knight_position, threat_value, BORDER_BB, CENTER_ONE_BB,
-        CENTER_RING_BB, CENTER_TWO_BB, CORNER_BB,
+        initial_positional_value, player_king_position, player_knight_position, threat_value,
+        BORDER_BB, CENTER_ONE_BB, CENTER_RING_BB, CENTER_TWO_BB, CORNER_BB,
     };
 
     use super::player_pawn_position;
@@ -431,6 +432,38 @@ mod tests {
     }
 
     #[test]
+    fn should_calculate_player_king_position() {
+        // A FEN string with the corresponding evaluation
+        // The position should be symmetrical for both sides
+        let parameters = [
+            // Start position king
+            ("1q2k3/8/8/8/8/8/8/2Q1K3 w - - 0 1", -30),
+            // Castled king short
+            ("1q3rk1/8/8/8/8/8/8/2Q2RK1 w - - 0 1", 50),
+            // Castled king long
+            ("2kr2q1/8/8/8/8/8/8/2KR1Q2 w - - 0 1", 50),
+        ];
+
+        for (fen, expected) in parameters {
+            let board = Board::from_fen(fen).unwrap();
+
+            let actual_white = player_king_position(
+                &board,
+                board.piece_bb(Player::White, PieceType::K),
+                Player::White,
+            );
+            let actual_black = player_king_position(
+                &board,
+                board.piece_bb(Player::Black, PieceType::K),
+                Player::Black,
+            );
+
+            assert_eq!(actual_white, expected, "Evaluation wrong for White: {fen}");
+            assert_eq!(actual_black, expected, "Evaluation wrong for Black: {fen}");
+        }
+    }
+
+    #[test]
     fn should_prefer_good_openings() {
         // The left side is the better opening, the right side the worse one
         let parameters = [
@@ -449,6 +482,21 @@ mod tests {
                 "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1",
                 "rnbqkbnr/pppppppp/8/8/8/4P3/PPPP1PPP/RNBQKBNR w KQkq - 0 1",
             ),
+            (
+                "pure castling is better than walking the king",
+                "1k1q4/8/8/8/8/8/8/3Q1RK1 w - - 0 1",
+                "1k1q4/8/8/8/8/8/8/3Q2KR w - - 0 1",
+            ),
+            (
+                "position castling is better than walking the king first",
+                "rnbqk1nr/pp1p1pbp/4p1p1/2p5/2B1P3/2N2N2/PPPP1PPP/R1BQ1RK1 b kq - 1 5",
+                "rnbqk1nr/pp1p1pbp/4p1p1/2p5/2B1P3/2N2N2/PPPP1PPP/R1BQ1K1R b kq - 1 5",
+            ),
+            (
+                "position castling is better than walking the king second",
+                "r1bqk1nr/pp1p1pbp/2n1p1p1/2p5/2B1P3/2N2N2/PPPP1PPP/R1BQ2KR b kq - 3 6",
+                "r1bqk1nr/pp1p1pbp/2n1p1p1/2p5/2B1P3/2N2N2/PPPP1PPP/R1BQ1RK1 w kq - 2 6",
+            ),
         ];
 
         for (name, fen_better, fen_worse) in parameters {
@@ -458,7 +506,10 @@ mod tests {
             let eval_better = initial_positional_value(&board_better);
             let eval_worse = initial_positional_value(&board_worse);
 
-            assert!(eval_better > eval_worse, "{name}");
+            assert!(
+                eval_better > eval_worse,
+                "{eval_better} <= {eval_worse} {name}"
+            );
         }
     }
 
