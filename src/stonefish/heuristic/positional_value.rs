@@ -57,7 +57,6 @@ fn is_endgame(board: &Board) -> bool {
 /// Evaluate the position of the king.
 fn player_king_position(board: &Board, piece_bb: BitBoard, player: Player) -> i32 {
     if is_endgame(board) {
-        println!("Endgame!!");
         let mut value = 0;
 
         // Stay away from the borders
