@@ -205,7 +205,7 @@ pub fn threat_value(board: &Board) -> i32 {
             None => continue,
         };
 
-        if !piece_type.is_real() || player != board.turn() {
+        if !piece_type.is_real() || player == board.turn() {
             continue;
         }
 
@@ -233,7 +233,7 @@ pub fn threat_value(board: &Board) -> i32 {
         }
 
         if defenders.len() == 0 && attackers.len() > 0 {
-            value -= get_piece_value(piece_type);
+            value += get_piece_value(piece_type);
         }
     }
 
@@ -300,7 +300,8 @@ mod tests {
     use pleco::{BitBoard, Board, PieceType, Player, SQ};
 
     use crate::stonefish::heuristic::positional_value::{
-        player_knight_position, BORDER_BB, CENTER_ONE_BB, CENTER_RING_BB, CENTER_TWO_BB, CORNER_BB, initial_positional_value,
+        initial_positional_value, player_knight_position, threat_value, BORDER_BB, CENTER_ONE_BB,
+        CENTER_RING_BB, CENTER_TWO_BB, CORNER_BB,
     };
 
     use super::player_pawn_position;
@@ -451,6 +452,54 @@ mod tests {
             let eval_worse = initial_positional_value(&board_worse);
 
             assert!(eval_better > eval_worse, "{name}");
+        }
+    }
+
+    #[test]
+    fn test_threat_value() {
+        let parameters = [
+            (
+                "unprotected white rook",
+                "4k3/8/2r5/8/8/2R5/8/4K3 b - - 0 1",
+                500,
+            ),
+            (
+                "unprotected black rook",
+                "4k3/8/2r5/8/8/2R5/8/4K3 w - - 0 1",
+                500,
+            ),
+            (
+                "protected white rook with bishop",
+                "4k3/8/2r5/8/8/2R5/1B6/4K3 b - - 0 1",
+                0,
+            ),
+            (
+                "protected white rook with pawn",
+                "4k3/8/2r5/8/8/2R5/1P6/4K3 b - - 0 1",
+                0,
+            ),
+            (
+                "protected black rook with bishop",
+                "4k3/1b6/2r5/8/8/2R5/8/4K3 w - - 0 1",
+                0,
+            ),
+            (
+                "protected black rook with pawn",
+                "4k3/1p6/2r5/8/8/2R5/8/4K3 w - - 0 1",
+                0,
+            ),
+            (
+                "bad opening",
+                "rnbqkb1r/pp1ppppp/5n2/8/2p5/N7/PPPPPPPP/R1BQKBNR w KQkq - 0 4",
+                100,
+            ),
+        ];
+
+        for (name, fen, expected) in parameters {
+            let board = Board::from_fen(fen).unwrap();
+            let threat_value = threat_value(&board);
+
+            assert_eq!(threat_value, expected, "{name}");
         }
     }
 }
