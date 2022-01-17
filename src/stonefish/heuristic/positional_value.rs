@@ -164,6 +164,13 @@ fn player_rook_position(_board: &Board, piece_bb: BitBoard, player: Player) -> i
     };
     value += score_position(piece_bb, center_bb, 20);
 
+    // Being in the center after castling is also good
+    let center_bb = match player {
+        Player::White => SQ::G1.to_bb(),
+        Player::Black => SQ::G8.to_bb(),
+    };
+    value += score_position(piece_bb, center_bb, 10);
+
     // Avoid the left and right borders
     let border_bb = (BitBoard::FILE_A | BitBoard::FILE_H) ^ BORDER_BB;
     value += score_position(piece_bb, border_bb, -5);
