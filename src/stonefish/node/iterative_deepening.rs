@@ -201,15 +201,17 @@ mod tests {
 
     #[test]
     fn should_not_wrongly_assume_mate() {
-        let fens = [
-            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-            "8/r1N1k1pp/b4p2/3Qp3/P6q/4P3/2PP1PPP/R3K2R w KQ - 1 25",
+        let paramerters = [
+            ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 3),
+            ("8/r1N1k1pp/b4p2/3Qp3/P6q/4P3/2PP1PPP/R3K2R w KQ - 1 25", 3),
+            // TODO: Fix mate here
+            // ("4r3/1b2rpk1/p6R/1p4p1/2pN4/P1P2P2/1P3KP1/R7 w - - 2 29", 5),
         ];
 
-        for fen in fens {
+        for (fen, depth) in paramerters {
             let mut node = Node::new(Board::from_fen(fen).unwrap());
             node.iterative_deepening(
-                Some(3),
+                Some(depth),
                 None,
                 RepetitionTable::new(),
                 Arc::new(AtomicBool::new(false)),
