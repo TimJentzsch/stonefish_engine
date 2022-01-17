@@ -183,8 +183,8 @@ impl UciEngine for Stonefish {
             // Additionally use the increment time
             let increment_time_ms: u64 = increment.try_into().unwrap();
             let mut total_time_ms = base_time_ms + increment_time_ms;
-            // Consider a delay of 100 ms and cap at 7 seconds
-            total_time_ms = total_time_ms.saturating_sub(100).min(7000);
+            // Consider a delay of 500 ms and cap at 10 seconds
+            total_time_ms = total_time_ms.saturating_sub(500).min(10000);
             Some(Duration::from_millis(total_time_ms))
         } else if max_depth.is_some() {
             None
