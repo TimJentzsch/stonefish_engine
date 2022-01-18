@@ -205,7 +205,7 @@ pub fn threat_value(board: &Board) -> i32 {
     let mut value = 0;
     let piece_locations = board.get_piece_locations();
 
-    for (sq, piece) in piece_locations {
+    'outer: for (sq, piece) in piece_locations {
         let piece_type = piece.type_of();
         let player = match piece.player() {
             Some(p) => p,
@@ -215,11 +215,10 @@ pub fn threat_value(board: &Board) -> i32 {
         if !piece_type.is_real() || player == board.turn() {
             continue;
         }
+        
+        let mut attackers = 0;
 
-        let mut defenders = vec![];
-        let mut attackers = vec![];
-
-        // Determine all defenders and attackers of this piece
+        // Determine if the piece is attacked and not defended
         for attacker_sq in board.attackers_to(sq, board.occupied()) {
             let other_piece = board.piece_at_sq(attacker_sq);
             let other_piece_type = other_piece.type_of();
@@ -228,18 +227,21 @@ pub fn threat_value(board: &Board) -> i32 {
                 None => continue,
             };
 
-            if !piece_type.is_real() {
+            if !other_piece_type.is_real() {
                 continue;
             }
 
             if player == other_player {
-                defenders.push(other_piece_type);
+                // The piece is defended
+                continue 'outer;
             } else {
-                attackers.push(other_piece_type);
+                // The piece is attacked
+                attackers += 1;
             }
         }
 
-        if defenders.len() == 0 && attackers.len() > 0 {
+        if attackers > 0 {
+            // The piece is not defended, but attacked
             value += get_piece_value(piece_type);
         }
     }
