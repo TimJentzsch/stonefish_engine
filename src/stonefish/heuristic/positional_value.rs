@@ -76,7 +76,7 @@ fn player_king_position(board: &Board, piece_bb: BitBoard, player: Player) -> i3
             Player::White => SQ::G1.to_bb() | SQ::C1.to_bb(),
             Player::Black => SQ::G8.to_bb() | SQ::C8.to_bb(),
         };
-        value += score_position(piece_bb, castle_bb, 50);
+        value += score_position(piece_bb, castle_bb, 30);
 
         // Don't stand around in the center
         let center_bb = match player {
@@ -171,6 +171,13 @@ fn player_rook_position(_board: &Board, piece_bb: BitBoard, player: Player) -> i
     };
     value += score_position(piece_bb, center_bb, 10);
 
+    // Avoid not being castled
+    let not_castled_bb = match player {
+        Player::White => BitBoard::RANK_1 ^ (SQ::D1.to_bb() | SQ::E1.to_bb() | SQ::F1.to_bb()),
+        Player::Black => BitBoard::RANK_8 ^ (SQ::D8.to_bb() | SQ::E8.to_bb() | SQ::F8.to_bb()),
+    };
+    value += score_position(piece_bb, not_castled_bb, -10);
+
     // Avoid the left and right borders
     let border_bb = (BitBoard::FILE_A | BitBoard::FILE_H) ^ CORNER_BB;
     value += score_position(piece_bb, border_bb, -5);
@@ -215,7 +222,7 @@ pub fn threat_value(board: &Board) -> i32 {
         if !piece_type.is_real() || player == board.turn() {
             continue;
         }
-        
+
         let mut attackers = 0;
 
         // Determine if the piece is attacked and not defended
@@ -441,9 +448,9 @@ mod tests {
             // Start position king
             ("1q2k3/8/8/8/8/8/8/2Q1K3 w - - 0 1", -30),
             // Castled king short
-            ("1q3rk1/8/8/8/8/8/8/2Q2RK1 w - - 0 1", 50),
+            ("1q3rk1/8/8/8/8/8/8/2Q2RK1 w - - 0 1", 30),
             // Castled king long
-            ("2kr2q1/8/8/8/8/8/8/2KR1Q2 w - - 0 1", 50),
+            ("2kr2q1/8/8/8/8/8/8/2KR1Q2 w - - 0 1", 30),
         ];
 
         for (fen, expected) in parameters {
@@ -471,13 +478,13 @@ mod tests {
         // The position should be symmetrical for both sides
         let parameters = [
             // Start position h rook
-            ("1q2k3/8/8/8/8/8/8/2Q1K3 w - - 0 1", 0),
+            ("4k2r/8/8/8/8/8/8/4K2R w - - 0 1", -10),
             // Castled h rook
             ("5rk1/8/8/8/8/8/8/5RK1 w - - 0 1", 10),
             // Center h rook
             ("2kr4/8/8/8/8/8/8/2KR4 w - - 0 1", 20),
             // Start position a rook
-            ("r3k3/8/8/8/8/8/8/R3K3 w - - 0 1", 0),
+            ("r3k3/8/8/8/8/8/8/R3K3 w - - 0 1", -10),
             // Castled a rook
             ("2kr4/8/8/8/8/8/8/2KR4 w - - 0 1", 20),
         ];
@@ -527,13 +534,13 @@ mod tests {
             ),
             (
                 "position castling is better than walking the king first",
-                "rnbqk1nr/pp1p1pbp/4p1p1/2p5/2B1P3/2N2N2/PPPP1PPP/R1BQ1RK1 b kq - 1 5",
-                "rnbqk1nr/pp1p1pbp/4p1p1/2p5/2B1P3/2N2N2/PPPP1PPP/R1BQ1K1R b kq - 1 5",
+                "rnbqk1nr/pp1p1pbp/4p1p1/2p5/2B1P3/2N2N2/PPPP1PPP/R1BQ1RK1 w kq - 1 5",
+                "rnbqk1nr/pp1p1pbp/4p1p1/2p5/2B1P3/2N2N2/PPPP1PPP/R1BQ1K1R w kq - 1 5",
             ),
             (
                 "position castling is better than walking the king second",
-                "r1bqk1nr/pp1p1pbp/2n1p1p1/2p5/2B1P3/2N2N2/PPPP1PPP/R1BQ2KR b kq - 3 6",
                 "r1bqk1nr/pp1p1pbp/2n1p1p1/2p5/2B1P3/2N2N2/PPPP1PPP/R1BQ1RK1 w kq - 2 6",
+                "r1bqk1nr/pp1p1pbp/2n1p1p1/2p5/2B1P3/2N2N2/PPPP1PPP/R1BQ2KR w kq - 3 6",
             ),
         ];
 

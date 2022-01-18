@@ -167,14 +167,19 @@ mod tests {
                 "rnbqkbnr/pppppppp/8/8/8/4P3/PPPP1PPP/RNBQKBNR w KQkq - 0 1",
             ),
             (
-                "castling is better than walking the king first",
-                "rnbqk1nr/pp1p1pbp/4p1p1/2p5/2B1P3/2N2N2/PPPP1PPP/R1BQ1RK1 b kq - 1 5",
-                "rnbqk1nr/pp1p1pbp/4p1p1/2p5/2B1P3/2N2N2/PPPP1PPP/R1BQ1K1R b kq - 1 5",
+                "pure castling is better than walking the king",
+                "1k1q4/8/8/8/8/8/8/3Q1RK1 w - - 0 1",
+                "1k1q4/8/8/8/8/8/8/3Q2KR w - - 0 1",
             ),
             (
-                "castling is better than walking the king second",
-                "r1bqk1nr/pp1p1pbp/2n1p1p1/2p5/2B1P3/2N2N2/PPPP1PPP/R1BQ2KR b kq - 3 6",
+                "position castling is better than walking the king first",
+                "rnbqk1nr/pp1p1pbp/4p1p1/2p5/2B1P3/2N2N2/PPPP1PPP/R1BQ1RK1 w kq - 1 5",
+                "rnbqk1nr/pp1p1pbp/4p1p1/2p5/2B1P3/2N2N2/PPPP1PPP/R1BQ1K1R w kq - 1 5",
+            ),
+            (
+                "position castling is better than walking the king second",
                 "r1bqk1nr/pp1p1pbp/2n1p1p1/2p5/2B1P3/2N2N2/PPPP1PPP/R1BQ1RK1 w kq - 2 6",
+                "r1bqk1nr/pp1p1pbp/2n1p1p1/2p5/2B1P3/2N2N2/PPPP1PPP/R1BQ2KR w kq - 3 6",
             ),
         ];
 
