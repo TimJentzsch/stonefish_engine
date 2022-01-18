@@ -61,32 +61,9 @@ impl Node {
     }
 
     /// Create a new node from a given move.
-    pub fn new_from_move(
-        old_eval: Evaluation,
-        old_board: &Board,
-        mv: BitMove,
-        hash_table: &HashTable,
-    ) -> Self {
+    pub fn new_from_move(old_eval: Evaluation, old_board: &Board, mv: BitMove) -> Self {
         let mut board = old_board.clone();
         board.apply_move(mv);
-
-        // If the board is already cached, return it
-        if let Some(HashTableEntry {
-            evaluation: cache_eval,
-            best_line: cache_line,
-            depth: _,
-        }) = hash_table.get(&board.zobrist())
-        {
-            return Self {
-                board,
-                evaluation: *cache_eval,
-                best_line: cache_line.clone(),
-                size: 1,
-                depth: 0,
-                sel_depth: 0,
-            };
-        }
-
         let evaluation = move_heuristic(old_eval, old_board, mv, &board);
 
         Self {
@@ -123,8 +100,7 @@ impl Node {
 
             best_child = if let Some(prev_best) = best_child {
                 // The child eval is out of the perspective from the opponent, so worse is better for us
-                if child.evaluation < prev_best.evaluation
-                {
+                if child.evaluation < prev_best.evaluation {
                     Some(child)
                 } else {
                     Some(prev_best)
@@ -163,10 +139,23 @@ impl Node {
             .generate_moves()
             .iter()
             // Create a new child for each move
-            .map(|mv| Node::new_from_move(self.evaluation, &self.board, *mv, hash_table))
+            .map(|mv| Node::new_from_move(self.evaluation, &self.board, *mv))
             .collect();
 
-        children.sort();
+        // Order the moves for better alpha beta pruning
+        // If any cache value is available, take that for better accuracy
+        children.sort_unstable_by_key(|child| {
+            if let Some(HashTableEntry {
+                evaluation: cache_eval,
+                best_line: _,
+                depth: _,
+            }) = hash_table.get(&child.board.zobrist())
+            {
+                *cache_eval
+            } else {
+                child.evaluation
+            }
+        });
 
         // Important: Keep attributes up-to-date
         self.update_attributes(&children);

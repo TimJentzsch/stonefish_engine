@@ -1,7 +1,7 @@
 //! Evaluation of the positional value.
 //!
 //! Values inspired by https://www.chessprogramming.org/Simplified_Evaluation_Function
-use pleco::{BitBoard, BitMove, Board, Piece, PieceType, Player, SQ};
+use pleco::{BitBoard, BitMove, Board, PieceType, Player, SQ};
 
 use super::material_value::get_piece_value;
 
@@ -20,40 +20,17 @@ pub const CENTER_RING_BB: BitBoard =
 /// The bitboard of the center squares (radius 2).
 pub const CENTER_TWO_BB: BitBoard =
     BitBoard(0b00000000_00000000_00111100_00111100_00111100_00111100_00000000_00000000);
-
-struct Guard {
-    origin: (SQ, Piece),
-    target: (SQ, Piece),
-}
-
-impl Guard {
-    fn new(origin: (SQ, Piece), target: (SQ, Piece)) -> Self {
-        Self { origin, target }
-    }
-}
-
-/// Gets the squares and pieces that the player guards (defends or attacks).
-fn player_guards(board: &Board, player: Player) -> Vec<Guard> {
-    let piece_locations = board.get_piece_locations();
-
-    let mut guards = vec![];
-
-    for (sq, piece) in piece_locations {
-        // Only consider pieces of the current player
-        if piece.player().unwrap_or_else(|| player.other_player()) != player {
-            continue;
-        }
-
-        // Look at every square that the piece attacks
-        for attack_sq in board.attacks_from(piece.type_of(), sq, player) {
-            let target = board.piece_at_sq(attack_sq);
-
-            guards.push(Guard::new((sq, piece), (attack_sq, target)));
-        }
-    }
-
-    guards
-}
+// An array of all rank bitboards.
+pub const RANK_BBS: [BitBoard; 8] = [
+    BitBoard::RANK_1,
+    BitBoard::RANK_2,
+    BitBoard::RANK_3,
+    BitBoard::RANK_4,
+    BitBoard::RANK_5,
+    BitBoard::RANK_6,
+    BitBoard::RANK_7,
+    BitBoard::RANK_8,
+];
 
 /// Score how many pieces have the corresponding positions.
 fn score_position(piece_bb: BitBoard, position_bb: BitBoard, score: i32) -> i32 {
@@ -99,57 +76,44 @@ fn player_king_position(board: &Board, piece_bb: BitBoard, player: Player) -> i3
             Player::White => SQ::G1.to_bb() | SQ::C1.to_bb(),
             Player::Black => SQ::G8.to_bb() | SQ::C8.to_bb(),
         };
-        value += (piece_bb & castle_bb).count_bits() as i32 * 50;
+        value += score_position(piece_bb, castle_bb, 30);
 
         // Don't stand around in the center
         let center_bb = match player {
             Player::White => SQ::E1.to_bb() | SQ::D1.to_bb() | SQ::E2.to_bb() | SQ::D2.to_bb(),
             Player::Black => SQ::E8.to_bb() | SQ::D8.to_bb() | SQ::E7.to_bb() | SQ::D7.to_bb(),
         };
-        value += (piece_bb & center_bb).count_bits() as i32 * -20;
+        value += score_position(piece_bb, center_bb, -20);
 
         value
     }
+}
+
+/// Get the bitboard of the given rank from the player's perspective.
+fn get_player_rank_bb(rank: usize, player: Player) -> BitBoard {
+    let index = if player == Player::White {
+        rank - 1
+    } else {
+        8 - rank
+    };
+
+    RANK_BBS[index]
 }
 
 /// Evaluate the position of the pawns.
 fn player_pawn_position(_board: &Board, piece_bb: BitBoard, player: Player) -> i32 {
     let mut value = 0;
 
-    // Being close to promotion is good
-    let rank_seven_bb = match player {
-        Player::White => BitBoard::RANK_7,
-        Player::Black => BitBoard::RANK_2,
-    };
-    value += (rank_seven_bb & piece_bb).count_bits() as i32 * 50;
-
-    let rank_six_bb = match player {
-        Player::White => BitBoard::RANK_6,
-        Player::Black => BitBoard::RANK_3,
-    };
-    value += (rank_six_bb & piece_bb).count_bits() as i32 * 30;
-
     let center_files_bb = BitBoard::FILE_D | BitBoard::FILE_E;
 
+    // Being close to promotion is good
+    value += (get_player_rank_bb(7, player) & piece_bb).count_bits() as i32 * 70;
+    value += (get_player_rank_bb(6, player) & piece_bb).count_bits() as i32 * 50;
     // Developing the center pawns is good
-    let rank_five_center_bb = match player {
-        Player::White => BitBoard::RANK_5 & center_files_bb,
-        Player::Black => BitBoard::RANK_4 & center_files_bb,
-    };
-    value += (rank_five_center_bb & piece_bb).count_bits() as i32 * 25;
-
-    let rank_four_center_bb = match player {
-        Player::White => BitBoard::RANK_4 & center_files_bb,
-        Player::Black => BitBoard::RANK_5 & center_files_bb,
-    };
-    value += (rank_four_center_bb & piece_bb).count_bits() as i32 * 20;
-
+    value += (get_player_rank_bb(5, player) & center_files_bb & piece_bb).count_bits() as i32 * 40;
+    value += (get_player_rank_bb(4, player) & center_files_bb & piece_bb).count_bits() as i32 * 35;
     // Not developing the center pawns is bad
-    let rank_two_center_bb = match player {
-        Player::White => BitBoard::RANK_2 & center_files_bb,
-        Player::Black => BitBoard::RANK_7 & center_files_bb,
-    };
-    value += (rank_two_center_bb & piece_bb).count_bits() as i32 * -20;
+    value += (get_player_rank_bb(2, player) & center_files_bb & piece_bb).count_bits() as i32 * -40;
 
     value
 }
@@ -159,11 +123,11 @@ fn player_knight_position(_board: &Board, piece_bb: BitBoard) -> i32 {
     let mut value = 0;
 
     // Avoid having knights on the borders
-    value += score_position(piece_bb, BORDER_BB, -30);
+    value += score_position(piece_bb, BORDER_BB, -25);
     value += score_position(piece_bb, CORNER_BB, -20);
     // Move knights to the center
-    value += score_position(piece_bb, CENTER_ONE_BB, 20);
-    value += score_position(piece_bb, CENTER_RING_BB, 10);
+    value += score_position(piece_bb, CENTER_ONE_BB, 15);
+    value += score_position(piece_bb, CENTER_RING_BB, 5);
 
     value
 }
@@ -173,7 +137,7 @@ fn player_bishop_position(_board: &Board, piece_bb: BitBoard) -> i32 {
     let mut value = 0;
 
     // Avoid having bishops on the borders
-    value += score_position(piece_bb, BORDER_BB, -15);
+    value += score_position(piece_bb, BORDER_BB, -25);
     value += score_position(piece_bb, CORNER_BB, -10);
     // Move bishops to the center
     value += score_position(piece_bb, CENTER_ONE_BB, 15);
@@ -191,17 +155,31 @@ fn player_rook_position(_board: &Board, piece_bb: BitBoard, player: Player) -> i
         Player::White => BitBoard::RANK_7,
         Player::Black => BitBoard::RANK_2,
     };
-    value += score_position(piece_bb, rank_seven_bb, 15);
+    value += score_position(piece_bb, rank_seven_bb, 25);
 
     // Being in the center is good
     let center_bb = match player {
         Player::White => SQ::D1.to_bb() | SQ::E1.to_bb(),
         Player::Black => SQ::D8.to_bb() | SQ::E8.to_bb(),
     };
+    value += score_position(piece_bb, center_bb, 20);
+
+    // Being in the center after castling is also good
+    let center_bb = match player {
+        Player::White => SQ::F1.to_bb(),
+        Player::Black => SQ::F8.to_bb(),
+    };
     value += score_position(piece_bb, center_bb, 10);
 
+    // Avoid not being castled
+    let not_castled_bb = match player {
+        Player::White => BitBoard::RANK_1 ^ (SQ::D1.to_bb() | SQ::E1.to_bb() | SQ::F1.to_bb()),
+        Player::Black => BitBoard::RANK_8 ^ (SQ::D8.to_bb() | SQ::E8.to_bb() | SQ::F8.to_bb()),
+    };
+    value += score_position(piece_bb, not_castled_bb, -10);
+
     // Avoid the left and right borders
-    let border_bb = (BitBoard::FILE_A | BitBoard::FILE_H) ^ BORDER_BB;
+    let border_bb = (BitBoard::FILE_A | BitBoard::FILE_H) ^ CORNER_BB;
     value += score_position(piece_bb, border_bb, -5);
 
     value
@@ -230,30 +208,52 @@ fn player_piece_position(board: &Board, player: Player) -> i32 {
         + player_queen_position(board, board.piece_bb(player, PieceType::Q))
 }
 
-fn player_threat_value(board: &Board, player: Player) -> i32 {
+pub fn threat_value(board: &Board) -> i32 {
     let mut value = 0;
+    let piece_locations = board.get_piece_locations();
 
-    let guards = player_guards(board, player);
+    'outer: for (sq, piece) in piece_locations {
+        let piece_type = piece.type_of();
+        let player = match piece.player() {
+            Some(p) => p,
+            None => continue,
+        };
 
-    for guard in guards {
-        let (_, origin_piece) = guard.origin;
-        let (_, target_piece) = guard.target;
+        if !piece_type.is_real() || player == board.turn() {
+            continue;
+        }
 
-        if origin_piece.player() == target_piece.player() {
-            value += 20;
-        } else {
-            value += get_piece_value(target_piece.type_of()) / 10;
+        let mut attackers = 0;
+
+        // Determine if the piece is attacked and not defended
+        for attacker_sq in board.attackers_to(sq, board.occupied()) {
+            let other_piece = board.piece_at_sq(attacker_sq);
+            let other_piece_type = other_piece.type_of();
+            let other_player = match other_piece.player() {
+                Some(p) => p,
+                None => continue,
+            };
+
+            if !other_piece_type.is_real() {
+                continue;
+            }
+
+            if player == other_player {
+                // The piece is defended
+                continue 'outer;
+            } else {
+                // The piece is attacked
+                attackers += 1;
+            }
+        }
+
+        if attackers > 0 {
+            // The piece is not defended, but attacked
+            value += get_piece_value(piece_type);
         }
     }
 
     value
-}
-
-pub fn threat_value(board: &Board) -> i32 {
-    let player_threat = player_threat_value(board, board.turn());
-    let opponent_threat = player_threat_value(board, board.turn().other_player());
-
-    player_threat - opponent_threat
 }
 
 /// The current positional value.
@@ -298,7 +298,12 @@ pub fn move_positional_value(old_board: &Board, mv: BitMove, new_board: &Board) 
     // We also need to consider the change of capturing an opponent's piece
     let capture_eval = if mv.is_capture() {
         let capture_piece = old_board.piece_at_sq(dest_sq).type_of();
-        positional_piece_value(capture_piece, old_board, dest_sq.to_bb(), player.other_player())
+        positional_piece_value(
+            capture_piece,
+            old_board,
+            dest_sq.to_bb(),
+            player.other_player(),
+        )
     } else {
         0
     };
@@ -308,11 +313,15 @@ pub fn move_positional_value(old_board: &Board, mv: BitMove, new_board: &Board) 
 
 #[cfg(test)]
 mod tests {
-    use pleco::{BitBoard, SQ};
+    use pleco::{BitBoard, Board, PieceType, Player, SQ};
 
     use crate::stonefish::heuristic::positional_value::{
-        BORDER_BB, CENTER_ONE_BB, CENTER_RING_BB, CENTER_TWO_BB, CORNER_BB,
+        initial_positional_value, player_king_position, player_knight_position,
+        player_rook_position, threat_value, BORDER_BB, CENTER_ONE_BB, CENTER_RING_BB,
+        CENTER_TWO_BB, CORNER_BB,
     };
+
+    use super::player_pawn_position;
 
     #[test]
     fn should_calculate_center_one_bb() {
@@ -355,5 +364,245 @@ mod tests {
         let expected = CENTER_ONE_BB | CENTER_RING_BB;
 
         assert_eq!(CENTER_TWO_BB, expected);
+    }
+
+    #[test]
+    fn should_calculate_player_pawn_position() {
+        // A FEN string with the corresponding evaluation
+        // The position should be symmetrical for both sides
+        let parameters = [
+            // No pawns pushed
+            ("4k3/pppppppp/8/8/8/8/PPPPPPPP/4K3 w - - 0 1", -80),
+            // Single pushed e pawn
+            ("4k3/pppp1ppp/4p3/8/8/4P3/PPPP1PPP/4K3 w - - 0 1", -40),
+            // Double pushed e pawn
+            ("4k3/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/4K3 w - - 0 1", -5),
+            // Single pushed d pawn
+            ("4k3/ppp1pppp/3p4/8/8/3P4/PPP1PPPP/4K3 w - - 0 1", -40),
+            // Double pushed d pawn
+            ("4k3/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/4K3 w - - 0 1", -5),
+            // Single pushed both e and d pawn
+            ("4k3/ppp2ppp/3pp3/8/8/3PP3/PPP2PPP/4K3 w - - 0 1", 0),
+            // Double pushed both e and d pawn
+            ("4k3/ppp2ppp/8/3pp3/3PP3/8/PPP2PPP/4K3 w - - 0 1", 70),
+            // Almost promotion b pawn
+            ("4k3/pPp2ppp/8/8/8/8/PpP2PPP/4K3 w - - 0 1", 70),
+        ];
+
+        for (fen, expected) in parameters {
+            let board = Board::from_fen(fen).unwrap();
+
+            let actual_white = player_pawn_position(
+                &board,
+                board.piece_bb(Player::White, PieceType::P),
+                Player::White,
+            );
+            let actual_black = player_pawn_position(
+                &board,
+                board.piece_bb(Player::Black, PieceType::P),
+                Player::Black,
+            );
+
+            assert_eq!(actual_white, expected, "Evaluation wrong for White: {fen}");
+            assert_eq!(actual_black, expected, "Evaluation wrong for Black: {fen}");
+        }
+    }
+
+    #[test]
+    fn should_calculate_player_knight_position() {
+        // A FEN string with the corresponding evaluation
+        // The position should be symmetrical for both sides
+        let parameters = [
+            // Start position knights
+            ("1n2k1n1/8/8/8/8/8/8/1N2K1N1 w - - 0 1", -50),
+            // Single developed b knight
+            ("4k3/8/2n5/8/8/2N5/8/4K3 w - - 0 1", 5),
+            // b knight developed
+            ("4k1n1/8/2n5/8/8/2N5/8/4K1N1 w - - 0 1", -20),
+            // Single developed g knight
+            ("4k3/8/5n2/8/8/5N2/8/4K3 w - - 0 1", 5),
+            // g knight developed
+            ("1n2k3/8/5n2/8/8/5N2/8/1N2K3 w - - 0 1", -20),
+            // one corner knight
+            ("n3k3/8/8/8/8/8/8/N3K3 w - - 0 1", -45),
+        ];
+
+        for (fen, expected) in parameters {
+            let board = Board::from_fen(fen).unwrap();
+
+            let actual_white =
+                player_knight_position(&board, board.piece_bb(Player::White, PieceType::N));
+            let actual_black =
+                player_knight_position(&board, board.piece_bb(Player::Black, PieceType::N));
+
+            assert_eq!(actual_white, expected, "Evaluation wrong for White: {fen}");
+            assert_eq!(actual_black, expected, "Evaluation wrong for Black: {fen}");
+        }
+    }
+
+    #[test]
+    fn should_calculate_player_king_position() {
+        // A FEN string with the corresponding evaluation
+        // The position should be symmetrical for both sides
+        let parameters = [
+            // Start position king
+            ("1q2k3/8/8/8/8/8/8/2Q1K3 w - - 0 1", -30),
+            // Castled king short
+            ("1q3rk1/8/8/8/8/8/8/2Q2RK1 w - - 0 1", 30),
+            // Castled king long
+            ("2kr2q1/8/8/8/8/8/8/2KR1Q2 w - - 0 1", 30),
+        ];
+
+        for (fen, expected) in parameters {
+            let board = Board::from_fen(fen).unwrap();
+
+            let actual_white = player_king_position(
+                &board,
+                board.piece_bb(Player::White, PieceType::K),
+                Player::White,
+            );
+            let actual_black = player_king_position(
+                &board,
+                board.piece_bb(Player::Black, PieceType::K),
+                Player::Black,
+            );
+
+            assert_eq!(actual_white, expected, "Evaluation wrong for White: {fen}");
+            assert_eq!(actual_black, expected, "Evaluation wrong for Black: {fen}");
+        }
+    }
+
+    #[test]
+    fn should_calculate_player_rook_position() {
+        // A FEN string with the corresponding evaluation
+        // The position should be symmetrical for both sides
+        let parameters = [
+            // Start position h rook
+            ("4k2r/8/8/8/8/8/8/4K2R w - - 0 1", -10),
+            // Castled h rook
+            ("5rk1/8/8/8/8/8/8/5RK1 w - - 0 1", 10),
+            // Center h rook
+            ("2kr4/8/8/8/8/8/8/2KR4 w - - 0 1", 20),
+            // Start position a rook
+            ("r3k3/8/8/8/8/8/8/R3K3 w - - 0 1", -10),
+            // Castled a rook
+            ("2kr4/8/8/8/8/8/8/2KR4 w - - 0 1", 20),
+        ];
+
+        for (fen, expected) in parameters {
+            let board = Board::from_fen(fen).unwrap();
+
+            let actual_white = player_rook_position(
+                &board,
+                board.piece_bb(Player::White, PieceType::R),
+                Player::White,
+            );
+            let actual_black = player_rook_position(
+                &board,
+                board.piece_bb(Player::Black, PieceType::R),
+                Player::Black,
+            );
+
+            assert_eq!(actual_white, expected, "Evaluation wrong for White: {fen}");
+            assert_eq!(actual_black, expected, "Evaluation wrong for Black: {fen}");
+        }
+    }
+
+    #[test]
+    fn should_prefer_good_openings() {
+        // The left side is the better opening, the right side the worse one
+        let parameters = [
+            (
+                "e2e4 is better than b8c3",
+                "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1",
+                "rnbqkbnr/pppppppp/8/8/8/2N5/PPPPPPPP/R1BQKBNR w KQkq - 0 1",
+            ),
+            (
+                "e2e4 is better than g1g3",
+                "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1",
+                "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R w KQkq - 0 1",
+            ),
+            (
+                "e2e4 is better than e2e3",
+                "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1",
+                "rnbqkbnr/pppppppp/8/8/8/4P3/PPPP1PPP/RNBQKBNR w KQkq - 0 1",
+            ),
+            (
+                "pure castling is better than walking the king",
+                "1k1q4/8/8/8/8/8/8/3Q1RK1 w - - 0 1",
+                "1k1q4/8/8/8/8/8/8/3Q2KR w - - 0 1",
+            ),
+            (
+                "position castling is better than walking the king first",
+                "rnbqk1nr/pp1p1pbp/4p1p1/2p5/2B1P3/2N2N2/PPPP1PPP/R1BQ1RK1 w kq - 1 5",
+                "rnbqk1nr/pp1p1pbp/4p1p1/2p5/2B1P3/2N2N2/PPPP1PPP/R1BQ1K1R w kq - 1 5",
+            ),
+            (
+                "position castling is better than walking the king second",
+                "r1bqk1nr/pp1p1pbp/2n1p1p1/2p5/2B1P3/2N2N2/PPPP1PPP/R1BQ1RK1 w kq - 2 6",
+                "r1bqk1nr/pp1p1pbp/2n1p1p1/2p5/2B1P3/2N2N2/PPPP1PPP/R1BQ2KR w kq - 3 6",
+            ),
+        ];
+
+        for (name, fen_better, fen_worse) in parameters {
+            let board_better = Board::from_fen(fen_better).unwrap();
+            let board_worse = Board::from_fen(fen_worse).unwrap();
+
+            let eval_better = initial_positional_value(&board_better);
+            let eval_worse = initial_positional_value(&board_worse);
+
+            assert!(
+                eval_better > eval_worse,
+                "{eval_better} <= {eval_worse} {name}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_threat_value() {
+        let parameters = [
+            (
+                "unprotected white rook",
+                "4k3/8/2r5/8/8/2R5/8/4K3 b - - 0 1",
+                500,
+            ),
+            (
+                "unprotected black rook",
+                "4k3/8/2r5/8/8/2R5/8/4K3 w - - 0 1",
+                500,
+            ),
+            (
+                "protected white rook with bishop",
+                "4k3/8/2r5/8/8/2R5/1B6/4K3 b - - 0 1",
+                0,
+            ),
+            (
+                "protected white rook with pawn",
+                "4k3/8/2r5/8/8/2R5/1P6/4K3 b - - 0 1",
+                0,
+            ),
+            (
+                "protected black rook with bishop",
+                "4k3/1b6/2r5/8/8/2R5/8/4K3 w - - 0 1",
+                0,
+            ),
+            (
+                "protected black rook with pawn",
+                "4k3/1p6/2r5/8/8/2R5/8/4K3 w - - 0 1",
+                0,
+            ),
+            (
+                "bad opening",
+                "rnbqkb1r/pp1ppppp/5n2/8/2p5/N7/PPPPPPPP/R1BQKBNR w KQkq - 0 4",
+                100,
+            ),
+        ];
+
+        for (name, fen, expected) in parameters {
+            let board = Board::from_fen(fen).unwrap();
+            let threat_value = threat_value(&board);
+
+            assert_eq!(threat_value, expected, "{name}");
+        }
     }
 }

@@ -15,6 +15,8 @@ pub enum Evaluation {
 use std::cmp::Ordering;
 
 impl Evaluation {
+    pub const DRAW: Evaluation = Evaluation::Centipawns(0);
+
     /// Determine if the evaluation is a forced checkmate.
     pub fn is_forced_mate(&self) -> bool {
         !matches!(self, &Evaluation::Centipawns(_))

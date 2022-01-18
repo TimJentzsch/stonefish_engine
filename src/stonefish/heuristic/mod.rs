@@ -48,7 +48,7 @@ pub fn final_heuristic(old_eval: Evaluation, board: &Board) -> Evaluation {
     let delta = if board.checkmate() {
         return Evaluation::OpponentCheckmate(0);
     } else if board.stalemate() {
-        return Evaluation::Centipawns(0);
+        return Evaluation::DRAW;
     } else {
         threat_value(board)
     };
@@ -64,7 +64,10 @@ mod tests {
     use pleco::Board;
 
     use crate::stonefish::{
-        evaluation::Evaluation, types::HashTable, heuristic::initial_heuristic, node::Node,
+        evaluation::Evaluation,
+        heuristic::{final_heuristic, initial_heuristic, move_heuristic},
+        node::Node,
+        types::HashTable,
     };
 
     #[test]
@@ -117,6 +120,88 @@ mod tests {
                     child.board.last_move().unwrap().stringify()
                 );
             }
+        }
+    }
+
+    #[test]
+    fn should_properly_update_heuristic_for_move_sequences() {
+        let parameters = [(
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            ["e2e3", "d7d5", "d1h5", "g8h6", "h5g5", "g7g6", "g5e5"],
+        )];
+
+        for (fen, moves) in parameters {
+            let mut cur_board = Board::from_fen(fen).unwrap();
+            let mut cur_eval = initial_heuristic(&cur_board);
+
+            for uci_move in moves {
+                let mut new_board = cur_board.clone();
+                assert!(new_board.apply_uci_move(uci_move));
+                let mv = new_board.last_move().unwrap();
+                cur_eval = move_heuristic(cur_eval, &cur_board, mv, &new_board);
+                let fresh_eval = initial_heuristic(&new_board);
+
+                assert_eq!(cur_eval, fresh_eval, "{fen} after {uci_move}");
+                cur_board = new_board;
+            }
+        }
+    }
+
+    #[test]
+    fn should_prefer_good_openings() {
+        // The left side is the better opening, the right side the worse one
+        let parameters = [
+            (
+                "e2e4 is better than b8c3",
+                "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1",
+                "rnbqkbnr/pppppppp/8/8/8/2N5/PPPPPPPP/R1BQKBNR w KQkq - 0 1",
+            ),
+            (
+                "e2e4 is better than g1g3",
+                "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1",
+                "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R w KQkq - 0 1",
+            ),
+            (
+                "e2e4 is better than e2e3",
+                "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1",
+                "rnbqkbnr/pppppppp/8/8/8/4P3/PPPP1PPP/RNBQKBNR w KQkq - 0 1",
+            ),
+            (
+                "pure castling is better than walking the king",
+                "1k1q4/8/8/8/8/8/8/3Q1RK1 w - - 0 1",
+                "1k1q4/8/8/8/8/8/8/3Q2KR w - - 0 1",
+            ),
+            (
+                "position castling is better than walking the king first",
+                "rnbqk1nr/pp1p1pbp/4p1p1/2p5/2B1P3/2N2N2/PPPP1PPP/R1BQ1RK1 w kq - 1 5",
+                "rnbqk1nr/pp1p1pbp/4p1p1/2p5/2B1P3/2N2N2/PPPP1PPP/R1BQ1K1R w kq - 1 5",
+            ),
+            (
+                "position castling is better than walking the king second",
+                "r1bqk1nr/pp1p1pbp/2n1p1p1/2p5/2B1P3/2N2N2/PPPP1PPP/R1BQ1RK1 w kq - 2 6",
+                "r1bqk1nr/pp1p1pbp/2n1p1p1/2p5/2B1P3/2N2N2/PPPP1PPP/R1BQ2KR w kq - 3 6",
+            ),
+        ];
+
+        for (name, fen_better, fen_worse) in parameters {
+            let board_better = Board::from_fen(fen_better).unwrap();
+            let board_worse = Board::from_fen(fen_worse).unwrap();
+
+            let initial_eval_better = initial_heuristic(&board_better);
+            let initial_eval_worse = initial_heuristic(&board_worse);
+
+            assert!(
+                initial_eval_better > initial_eval_worse,
+                "Initial: {initial_eval_better:?} <= {initial_eval_worse:?} {name}"
+            );
+
+            let final_eval_better = final_heuristic(initial_eval_better, &board_better);
+            let final_eval_worse = final_heuristic(initial_eval_worse, &board_worse);
+
+            assert!(
+                final_eval_better > final_eval_worse,
+                "Final: {final_eval_better:?} <= {final_eval_worse:?} {name}"
+            );
         }
     }
 }
