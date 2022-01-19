@@ -1,4 +1,7 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
 
 use pleco::Board;
 
@@ -66,6 +69,7 @@ impl RepetitionTable {
     }
 }
 
+#[derive(Clone)]
 pub struct HashTableEntry {
     pub evaluation: Evaluation,
     pub best_line: Line,
@@ -82,4 +86,21 @@ impl HashTableEntry {
     }
 }
 
-pub type HashTable = HashMap<u64, HashTableEntry>;
+#[derive(Clone)]
+pub struct HashTable(Arc<Mutex<HashMap<u64, HashTableEntry>>>);
+
+impl HashTable {
+    pub fn new() -> Self {
+        HashTable(Arc::new(Mutex::new(HashMap::new())))
+    }
+
+    pub fn insert(&mut self, node: &Node) {
+        let mut map = self.0.lock().unwrap();
+        map.insert(node.board.zobrist(), HashTableEntry::from_node(node));
+    }
+
+    pub fn get(self, board: &Board) -> Option<HashTableEntry> {
+        let map = self.0.lock().unwrap();
+        map.get(&board.zobrist()).map(|entry| entry.clone())
+    }
+}

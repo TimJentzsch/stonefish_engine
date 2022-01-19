@@ -2,7 +2,7 @@ use crate::stonefish::{
     abort_flags::{AbortFlags, SearchAborted},
     evaluation::Evaluation,
     heuristic::final_heuristic,
-    tables::{HashTable, HashTableEntry, RepetitionTable},
+    tables::{HashTable, RepetitionTable},
 };
 
 use super::Node;
@@ -103,7 +103,7 @@ impl Node {
         // Keep depth and size up-to-date
         self.update_attributes(&children);
         self.evaluation = cur_evaluation;
-        hash_table.insert(self.board.zobrist(), HashTableEntry::from_node(self));
+        hash_table.insert(&self);
         repetition_table.remove(&self.board);
         Ok(self.evaluation)
     }

@@ -150,9 +150,9 @@ impl Node {
                 evaluation: cache_eval,
                 best_line: _,
                 depth: _,
-            }) = hash_table.get(&child.board.zobrist())
+            }) = hash_table.clone().get(&child.board)
             {
-                *cache_eval
+                cache_eval
             } else {
                 child.evaluation
             }
