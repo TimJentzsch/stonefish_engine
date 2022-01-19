@@ -297,6 +297,35 @@ pub fn positional_piece_value(
 /// The positional evaluation delta for a given move.
 pub fn move_positional_value(old_board: &Board, mv: BitMove, new_board: &Board) -> i32 {
     let player = old_board.turn();
+
+    // Castling needs to be handled separately, because two pieces are involved
+    if mv.is_castle() {
+        let src_king_bb = match player {
+            Player::White => SQ::E1.to_bb(),
+            Player::Black => SQ::E8.to_bb(),
+        };
+
+        let (src_rook_bb, dest_rook_bb, dest_king_bb) = if mv.is_king_castle() {
+            match player {
+                Player::White => (SQ::H1.to_bb(), SQ::F1.to_bb(), SQ::G1.to_bb()),
+                Player::Black => (SQ::H8.to_bb(), SQ::F8.to_bb(), SQ::G8.to_bb()),
+            }
+        } else {
+            match player {
+                Player::White => (SQ::A1.to_bb(), SQ::D1.to_bb(), SQ::C1.to_bb()),
+                Player::Black => (SQ::A8.to_bb(), SQ::D8.to_bb(), SQ::C8.to_bb()),
+            }
+        };
+
+        let old_rook_eval = player_rook_position(old_board, src_rook_bb, player);
+        let new_rook_eval = player_rook_position(new_board, dest_rook_bb, player);
+
+        let old_king_eval = player_king_position(old_board, src_king_bb, player);
+        let new_king_eval = player_king_position(new_board, dest_king_bb, player);
+
+        return new_king_eval + new_rook_eval - old_king_eval - old_rook_eval
+    }
+
     let src_sq = mv.get_src();
     let dest_sq = mv.get_dest();
 
@@ -306,6 +335,9 @@ pub fn move_positional_value(old_board: &Board, mv: BitMove, new_board: &Board) 
 
     let old_pos_eval = positional_piece_value(old_piece, old_board, src_sq.to_bb(), player);
     let new_pos_eval = positional_piece_value(new_piece, new_board, dest_sq.to_bb(), player);
+
+    // If the player is castling we also need to update the rook
+
     // We also need to consider the change of capturing an opponent's piece
     let capture_eval = if mv.is_capture() {
         let capture_piece = old_board.piece_at_sq(dest_sq).type_of();

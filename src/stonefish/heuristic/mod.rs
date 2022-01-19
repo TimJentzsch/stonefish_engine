@@ -100,6 +100,11 @@ mod tests {
             "5rkr/pp2Rp2/1b1p1Pb1/3P2Q1/2n3P1/2p5/P4P2/4R1K1 w - - 1 1",
             "1r1kr3/Nbppn1pp/1b6/8/6Q1/3B1P2/Pq3P1P/3RR1K1 w - - 1 1",
             "5rk1/1p1q2bp/p2pN1p1/2pP2Bn/2P3P1/1P6/P4QKP/5R2 w - - 1 1",
+            "r1bq1rk1/p2pnpbp/2pQ2p1/4p3/2B1P3/2N1B3/PPP2PPP/R3K2R w KQ - 2 11",
+            // Castling white
+            "r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w - - 0 1",
+            // Castling black
+            "r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R b - - 0 1",
         ];
 
         for fen in fens {
