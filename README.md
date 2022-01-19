@@ -1,6 +1,14 @@
 # Stonefish Engine
 
 Stonefish is an amateur chess engine written in Rust.
+Not to be confused with the much stronger [Stockfish](https://stockfishchess.org/)!
+
+## Features
+
+- Supports the [Universal Chess Interface](https://backscattering.de/chess/uci/) (UCI).
+- [Minimax](https://en.wikipedia.org/wiki/Minimax) search with [alpha–beta pruning](https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning) and [iterative deepening](https://en.wikipedia.org/wiki/Iterative_deepening_depth-first_search).
+- Multi-threaded search.
+- Heuristic evaluation of material value and piece position.
 
 ## Usage
 
@@ -43,13 +51,6 @@ Here's how to compile the engine locally:
     ```
 
 You will then find the compiled program in `stonefish_engine/target/release`.
-
-## Features
-
-- Supports the [Universal Chess Interface](https://backscattering.de/chess/uci/) (UCI).
-- [Minimax](https://en.wikipedia.org/wiki/Minimax) search with [alpha–beta pruning](https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning) and [iterative deepening](https://en.wikipedia.org/wiki/Iterative_deepening_depth-first_search).
-- Multi-threaded search.
-- Heuristic evaluation of material value and piece position.
 
 ## Resources
 
