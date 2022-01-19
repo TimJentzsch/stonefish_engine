@@ -56,6 +56,7 @@ You will then find the compiled program in `stonefish_engine/target/release`.
 
 - [Pleco](https://github.com/sfleischman105/Pleco) by [@sfleischman105](https://github.com/sfleischman105https://github.com/sfleischman105) for board representation and move generation.
 - [UCI Protocol](https://backscattering.de/chess/uci/) for engine–GUI communication.
+- [lichess-bot](https://github.com/ShailChoksi/lichess-bot) by [@ShailChoksi](https://github.com/ShailChoksi) to let the bot run on [Lichess](https://lichess.org/).
 
 ## License
 
