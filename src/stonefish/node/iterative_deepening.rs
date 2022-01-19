@@ -69,7 +69,7 @@ impl Node {
 
                 let mut hash_table = HashTable::new();
                 let mut repetition_table = repetition_table.clone();
-                if repetition_table.insert_check_draw(&self.board) {
+                if repetition_table.insert_check_draw(&child.board) {
                     repetition_table.remove(&self.board);
                     child.evaluation = Evaluation::Draw;
                     tx.send((child, Ok(Evaluation::Draw))).unwrap();
@@ -116,7 +116,7 @@ impl Node {
 
             // If the time is limited and there is a forced mate, just play it out
             let play_forced_mate =
-                self.evaluation.is_forced_mate() && (max_depth.is_some() || max_time.is_some());
+                self.evaluation.is_game_over() && (max_depth.is_some() || max_time.is_some());
 
             if abort || play_forced_mate {
                 break;
@@ -221,7 +221,7 @@ mod tests {
             );
 
             assert!(
-                !node.evaluation.is_forced_mate(),
+                !node.evaluation.is_game_over(),
                 "'{}': {:?}",
                 fen,
                 node.evaluation
@@ -232,6 +232,7 @@ mod tests {
     #[test]
     fn should_always_respond_with_move() {
         let params = [(
+            // position fen 3rk2r/ppp2p1p/3p1n2/6P1/2Pb4/3P3P/PP3RBK/RNB5 w k - 0 17 moves f2d2 d4e5 h2g1 e5d4 g1h2
             "3rk2r/ppp2p1p/3p1n2/6P1/2Pb4/3P3P/PP3RBK/RNB5 w k - 0 17",
             vec!["f2d2", "d4e5", "h2g1", "e5d4", "g1h2"],
         )];

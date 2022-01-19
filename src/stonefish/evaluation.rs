@@ -17,8 +17,8 @@ pub enum Evaluation {
 use std::cmp::Ordering;
 
 impl Evaluation {
-    /// Determine if the evaluation is a forced checkmate.
-    pub fn is_forced_mate(&self) -> bool {
+    /// Determine if the evaluation marks the end of the game.
+    pub fn is_game_over(&self) -> bool {
         !matches!(self, &Evaluation::Centipawns(_))
     }
 
@@ -109,11 +109,13 @@ mod tests {
     use super::Evaluation;
 
     #[test]
-    fn should_recognize_forced_mate() {
-        assert!(Evaluation::PlayerCheckmate(3).is_forced_mate());
-        assert!(Evaluation::OpponentCheckmate(3).is_forced_mate());
-        assert_eq!(Evaluation::Centipawns(100).is_forced_mate(), false);
-        assert_eq!(Evaluation::Centipawns(-100).is_forced_mate(), false);
+    fn should_recognize_game_over() {
+        assert!(Evaluation::PlayerCheckmate(3).is_game_over());
+        assert!(Evaluation::OpponentCheckmate(3).is_game_over());
+        assert!(Evaluation::Draw.is_game_over());
+        assert_eq!(Evaluation::Centipawns(100).is_game_over(), false);
+        assert_eq!(Evaluation::Centipawns(-100).is_game_over(), false);
+        assert_eq!(Evaluation::Centipawns(0).is_game_over(), false);
     }
 
     #[test]
