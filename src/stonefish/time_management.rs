@@ -59,3 +59,121 @@ pub fn get_max_time(go_config: UciGoConfig, player: Player) -> Option<Duration> 
 
     Some(Duration::from_millis(search_time_ms.try_into().unwrap()))
 }
+
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+
+    use pleco::Player;
+
+    use crate::uci::uci_command::UciGoConfig;
+
+    use super::get_max_time;
+
+    #[test]
+    fn should_not_take_longer_than_remaining_time() {
+        let params = [
+            (10_000_000, 10_000),
+            (10_000_000, 0),
+            (1_000_000, 10_000),
+            (1_000_000, 0),
+            (500_000, 10_000),
+            (500_000, 0),
+            (25_000, 10_000),
+            (25_000, 0),
+            (10_000, 10_000),
+            (10_000, 0),
+            (5_000, 10_000),
+            (5_000, 0),
+            (1_000, 10_000),
+            (1_000, 0),
+            (500, 10_000),
+            (500, 0),
+            (100, 10_000),
+            (100, 0),
+            (1, 10_000),
+            (1, 0),
+        ];
+
+        for (time_ms, increment_ms) in params {
+            let go_config = UciGoConfig {
+                search_moves: None,
+                ponder: false,
+                white_time_ms: Some(time_ms),
+                black_time_ms: Some(time_ms),
+                white_increment_ms: increment_ms,
+                black_increment_ms: increment_ms,
+                moves_to_go: 0,
+                max_depth: None,
+                max_nodes: None,
+                search_mate: None,
+                move_time_ms: None,
+                infinite: false,
+            };
+
+            let max_time = Some(Duration::from_millis(time_ms.try_into().unwrap()));
+
+            let actual_white = get_max_time(go_config.clone(), Player::White);
+            let actual_black = get_max_time(go_config, Player::Black);
+
+            assert!(
+                actual_white < max_time,
+                "White takes {actual_white:?}, but has only {max_time:?} left."
+            );
+            assert!(
+                actual_black < max_time,
+                "Black takes {actual_black:?}, but has only {max_time:?} left."
+            );
+        }
+    }
+
+    #[test]
+    fn should_take_move_time_if_available() {
+        let go_config = UciGoConfig {
+            search_moves: None,
+            ponder: false,
+            white_time_ms: Some(1_000_000_000),
+            black_time_ms: Some(1_000_000_000),
+            white_increment_ms: 1_000_000_000,
+            black_increment_ms: 1_000_000_000,
+            moves_to_go: 0,
+            max_depth: None,
+            max_nodes: None,
+            search_mate: None,
+            move_time_ms: Some(1_000),
+            infinite: false,
+        };
+
+        let expected = Some(Duration::from_millis(1_000));
+
+        let actual_white = get_max_time(go_config.clone(), Player::White);
+        let actual_black = get_max_time(go_config, Player::Black);
+
+        assert_eq!(actual_white, expected);
+        assert_eq!(actual_black, expected);
+    }
+
+    #[test]
+    fn should_respect_infinite_search() {
+        let go_config = UciGoConfig {
+            search_moves: None,
+            ponder: false,
+            white_time_ms: Some(1_000),
+            black_time_ms: Some(1_000),
+            white_increment_ms: 1_000,
+            black_increment_ms: 1_000,
+            moves_to_go: 0,
+            max_depth: None,
+            max_nodes: None,
+            search_mate: None,
+            move_time_ms: Some(1_000),
+            infinite: true,
+        };
+
+        let actual_white = get_max_time(go_config.clone(), Player::White);
+        let actual_black = get_max_time(go_config, Player::Black);
+
+        assert_eq!(actual_white, None);
+        assert_eq!(actual_black, None);
+    }
+}

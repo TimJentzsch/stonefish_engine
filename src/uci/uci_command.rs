@@ -19,7 +19,7 @@ pub enum UciPosition {
     Startpos,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct UciGoConfig {
     /// Restrict search to these moves only.
     pub search_moves: Option<Vec<String>>,
