@@ -79,11 +79,22 @@ fn player_king_position(board: &Board, piece_bb: BitBoard, player: Player) -> i3
         value += score_position(piece_bb, castle_bb, 30);
 
         // Don't stand around in the center
-        let center_bb = match player {
-            Player::White => SQ::E1.to_bb() | SQ::D1.to_bb() | SQ::E2.to_bb() | SQ::D2.to_bb(),
-            Player::Black => SQ::E8.to_bb() | SQ::D8.to_bb() | SQ::E7.to_bb() | SQ::D7.to_bb(),
+        let start_bb = match player {
+            Player::White => SQ::E1.to_bb(),
+            Player::Black => SQ::E8.to_bb(),
         };
-        value += score_position(piece_bb, center_bb, -20);
+        value += score_position(piece_bb, start_bb, -20);
+        let center_bb = match player {
+            Player::White => SQ::F1.to_bb() | SQ::D1.to_bb(),
+            Player::Black => SQ::F8.to_bb() | SQ::D8.to_bb(),
+        };
+        value += score_position(piece_bb, center_bb, -30);
+
+        // Don't leave the safety of the first rank
+        value += score_position(piece_bb, get_player_rank_bb(2, player), -40);
+        for _ in 3..=8 {
+            value += score_position(piece_bb, get_player_rank_bb(2, player), -50);
+        }
 
         value
     }
