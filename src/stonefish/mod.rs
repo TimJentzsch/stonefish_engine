@@ -2,8 +2,9 @@ mod abort_flags;
 mod evaluation;
 mod heuristic;
 mod node;
-mod types;
+mod tables;
 mod time_management;
+mod types;
 
 use pleco::Board;
 
@@ -16,7 +17,7 @@ use crate::{
     },
 };
 
-use self::{types::RepetitionTable, time_management::get_max_time};
+use self::{tables::RepetitionTable, time_management::get_max_time};
 
 #[derive(Debug, Clone)]
 pub struct Stonefish {

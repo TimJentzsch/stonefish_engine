@@ -2,7 +2,8 @@ use crate::stonefish::{
     abort_flags::{AbortFlags, SearchAborted},
     evaluation::Evaluation,
     heuristic::final_heuristic,
-    types::{HashTable, HashTableEntry, RepetitionTable},
+    tables::RepetitionTable,
+    types::{HashTable, HashTableEntry},
 };
 
 use super::Node;
@@ -137,7 +138,7 @@ mod test {
         abort_flags::AbortFlags,
         evaluation::Evaluation,
         node::{minimax::HashTable, Node},
-        types::RepetitionTable,
+        tables::RepetitionTable,
     };
 
     #[test]

@@ -9,9 +9,7 @@ use std::{
 
 use crate::{
     stonefish::{
-        abort_flags::AbortFlags,
-        evaluation::Evaluation,
-        types::{HashTable, RepetitionTable},
+        abort_flags::AbortFlags, evaluation::Evaluation, tables::RepetitionTable, types::HashTable,
     },
     uci::AbortFlag,
 };
@@ -133,7 +131,7 @@ mod tests {
 
     use pleco::Board;
 
-    use crate::stonefish::{evaluation::Evaluation, node::Node, types::RepetitionTable};
+    use crate::stonefish::{evaluation::Evaluation, node::Node, tables::RepetitionTable};
 
     fn assert_forced_mate(fen: &str, plies: usize) {
         let board = Board::from_fen(fen).unwrap();
@@ -202,7 +200,10 @@ mod tests {
     #[test]
     fn should_not_wrongly_assume_mate() {
         let paramerters = [
-            ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 3),
+            (
+                "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+                3,
+            ),
             ("8/r1N1k1pp/b4p2/3Qp3/P6q/4P3/2PP1PPP/R3K2R w KQ - 1 25", 3),
             // TODO: Fix mate here
             ("4r3/1b2rpk1/p6R/1p4p1/2pN4/P1P2P2/1P3KP1/R7 w - - 2 29", 5),
