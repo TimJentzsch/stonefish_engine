@@ -46,6 +46,7 @@ impl Node {
         // When this flag is set to true, time has run out
         let time_flag: AbortFlag = Arc::new(AtomicBool::new(false));
         Self::set_timer(max_time, time_flag.clone());
+        let hash_table = HashTable::new();
 
         let mut depth: usize = 1;
 
@@ -60,14 +61,14 @@ impl Node {
             let (tx, rx) = mpsc::channel();
 
             let mut node = self.clone();
-            let children = node.reset().expand(&HashTable::new());
+            let children = node.reset().expand(&hash_table);
 
             // Search every move in a separate thread
             for child in &children {
                 let tx = tx.clone();
                 let mut child = child.clone();
+                let mut hash_table = hash_table.clone();
 
-                let mut hash_table = HashTable::new();
                 let mut repetition_table = repetition_table.clone();
                 if repetition_table.insert_check_draw(&self.board) {
                     repetition_table.remove(&self.board);
