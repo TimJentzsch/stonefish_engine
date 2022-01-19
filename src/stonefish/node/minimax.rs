@@ -24,7 +24,7 @@ impl Node {
         // Check for repetition
         if repetition_table.insert_check_draw(&self.board) {
             repetition_table.remove(&self.board);
-            return Ok(Evaluation::DRAW);
+            return Ok(Evaluation::Draw);
         }
 
         if depth == 0 {

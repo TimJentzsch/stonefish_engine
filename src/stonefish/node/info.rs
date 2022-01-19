@@ -24,7 +24,8 @@ impl Node {
     pub fn send_info(&self, duration: Duration) {
         // The evaluation of the current position
         let score = match self.evaluation {
-            Evaluation::Centipawns(cp) => format!("cp {}", cp),
+            Evaluation::Centipawns(cp) => format!("cp {cp}"),
+            Evaluation::Draw => format!("cp 0"),
             Evaluation::PlayerCheckmate(plies) => {
                 // Convert plies to moves
                 format!("mate {}", (plies as f32 / 2.0).ceil() as i32)

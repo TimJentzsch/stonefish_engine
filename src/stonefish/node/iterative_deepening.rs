@@ -71,8 +71,8 @@ impl Node {
                 let mut repetition_table = repetition_table.clone();
                 if repetition_table.insert_check_draw(&self.board) {
                     repetition_table.remove(&self.board);
-                    child.evaluation = Evaluation::DRAW;
-                    tx.send((child, Ok(Evaluation::DRAW))).unwrap();
+                    child.evaluation = Evaluation::Draw;
+                    tx.send((child, Ok(Evaluation::Draw))).unwrap();
                     continue;
                 }
 
