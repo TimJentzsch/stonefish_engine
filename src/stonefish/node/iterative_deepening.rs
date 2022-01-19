@@ -69,10 +69,10 @@ impl Node {
 
                 let mut hash_table = HashTable::new();
                 let mut repetition_table = repetition_table.clone();
-                if repetition_table.insert_check_draw(&self.board) {
+                if repetition_table.insert_check_draw(&child.board) {
                     repetition_table.remove(&self.board);
-                    child.evaluation = Evaluation::DRAW;
-                    tx.send((child, Ok(Evaluation::DRAW))).unwrap();
+                    child.evaluation = Evaluation::Draw;
+                    tx.send((child, Ok(Evaluation::Draw))).unwrap();
                     continue;
                 }
 
@@ -116,7 +116,7 @@ impl Node {
 
             // If the time is limited and there is a forced mate, just play it out
             let play_forced_mate =
-                self.evaluation.is_forced_mate() && (max_depth.is_some() || max_time.is_some());
+                self.evaluation.is_game_over() && (max_depth.is_some() || max_time.is_some());
 
             if abort || play_forced_mate {
                 break;
@@ -202,7 +202,10 @@ mod tests {
     #[test]
     fn should_not_wrongly_assume_mate() {
         let paramerters = [
-            ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 3),
+            (
+                "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+                3,
+            ),
             ("8/r1N1k1pp/b4p2/3Qp3/P6q/4P3/2PP1PPP/R3K2R w KQ - 1 25", 3),
             // TODO: Fix mate here
             ("4r3/1b2rpk1/p6R/1p4p1/2pN4/P1P2P2/1P3KP1/R7 w - - 2 29", 5),
@@ -218,11 +221,86 @@ mod tests {
             );
 
             assert!(
-                !node.evaluation.is_forced_mate(),
+                !node.evaluation.is_game_over(),
                 "'{}': {:?}",
                 fen,
                 node.evaluation
             );
+        }
+    }
+
+    #[test]
+    fn should_always_respond_with_move() {
+        let params = [(
+            // position fen 3rk2r/ppp2p1p/3p1n2/6P1/2Pb4/3P3P/PP3RBK/RNB5 w k - 0 17 moves f2d2 d4e5 h2g1 e5d4 g1h2
+            "3rk2r/ppp2p1p/3p1n2/6P1/2Pb4/3P3P/PP3RBK/RNB5 w k - 0 17",
+            vec!["f2d2", "d4e5", "h2g1", "e5d4", "g1h2"],
+        )];
+
+        for (fen, uci_moves) in params {
+            let mut board = Board::from_fen(fen).unwrap();
+            let mut repetition_table = RepetitionTable::new();
+
+            // Apply the moves and add them to the repetition table
+            for uci_move in uci_moves {
+                assert!(board.apply_uci_move(uci_move));
+                repetition_table.insert(&board);
+            }
+
+            // Construct a node and start searching
+            let mut node = Node::new(board);
+            node.iterative_deepening(
+                Some(3),
+                None,
+                repetition_table,
+                Arc::new(AtomicBool::new(false)),
+            );
+
+            // The bot should give a response
+            assert!(node.best_line.len() > 0);
+        }
+    }
+
+    #[test]
+    fn should_respond_with_repetition() {
+        let params = [
+            (
+                "3rk2r/ppp2p1p/3p1n2/6P1/2Pb4/3P3P/PP1R2BK/RNB5 b k - 5 19",
+                2,
+            ),
+            (
+                "3rk2r/ppp2p1p/3p1n2/6P1/2Pb4/3P3P/PP1R2BK/RNB5 b k - 5 19",
+                3,
+            ),
+            (
+                "3rk2r/ppp2p1p/3p1n2/6P1/2Pb4/3P3P/PP1R2BK/RNB5 b k - 5 19",
+                4,
+            ),
+            (
+                "3rk2r/ppp2p1p/3p1n2/6P1/2Pb4/3P3P/PP1R2BK/RNB5 b k - 5 19",
+                5,
+            ),
+        ];
+
+        for (fen, repetitions) in params {
+            let board = Board::from_fen(fen).unwrap();
+            let mut repetition_table = RepetitionTable::new();
+
+            for _ in 0..repetitions {
+                repetition_table.insert(&board);
+            }
+
+            // Construct a node and start searching
+            let mut node = Node::new(board);
+            node.iterative_deepening(
+                Some(3),
+                None,
+                repetition_table,
+                Arc::new(AtomicBool::new(false)),
+            );
+
+            // The bot should give a response
+            assert!(node.best_line.len() > 0);
         }
     }
 }

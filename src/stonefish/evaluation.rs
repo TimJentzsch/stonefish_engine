@@ -11,14 +11,14 @@ pub enum Evaluation {
     PlayerCheckmate(usize),
     /// The opponent can give checkmate in the given number of plies.
     OpponentCheckmate(usize),
+    /// A draw, e.g. through threefold-repetition
+    Draw,
 }
 use std::cmp::Ordering;
 
 impl Evaluation {
-    pub const DRAW: Evaluation = Evaluation::Centipawns(0);
-
-    /// Determine if the evaluation is a forced checkmate.
-    pub fn is_forced_mate(&self) -> bool {
+    /// Determine if the evaluation marks the end of the game.
+    pub fn is_game_over(&self) -> bool {
         !matches!(self, &Evaluation::Centipawns(_))
     }
 
@@ -28,6 +28,7 @@ impl Evaluation {
             Evaluation::Centipawns(mat) => Evaluation::Centipawns(-mat),
             Evaluation::PlayerCheckmate(plies) => Evaluation::OpponentCheckmate(*plies),
             Evaluation::OpponentCheckmate(plies) => Evaluation::PlayerCheckmate(*plies),
+            Evaluation::Draw => Evaluation::Draw,
         }
     }
 
@@ -43,6 +44,7 @@ impl Evaluation {
             Evaluation::Centipawns(mat) => Evaluation::Centipawns(*mat),
             Evaluation::PlayerCheckmate(plies) => Evaluation::PlayerCheckmate(plies + 1),
             Evaluation::OpponentCheckmate(plies) => Evaluation::OpponentCheckmate(plies + 1),
+            Evaluation::Draw => Evaluation::Draw,
         }
     }
 }
@@ -56,6 +58,7 @@ impl Ord for Evaluation {
                 Evaluation::Centipawns(mat_b) => mat_a.cmp(mat_b),
                 Evaluation::PlayerCheckmate(_) => Ordering::Less,
                 Evaluation::OpponentCheckmate(_) => Ordering::Greater,
+                Evaluation::Draw => 0.cmp(mat_a),
             },
             Evaluation::PlayerCheckmate(moves_a) => {
                 match other {
@@ -71,6 +74,14 @@ impl Ord for Evaluation {
                     Evaluation::OpponentCheckmate(moves_b) => moves_a.cmp(moves_b),
                     // Everything is better than getting mated by the opponent
                     _ => Ordering::Less,
+                }
+            }
+            Evaluation::Draw => {
+                match other {
+                    Evaluation::Centipawns(mat_b) => 0.cmp(mat_b),
+                    Evaluation::PlayerCheckmate(_) => Ordering::Less,
+                    Evaluation::OpponentCheckmate(_) => Ordering::Greater,
+                    Evaluation::Draw => Ordering::Equal,
                 }
             }
         }
@@ -98,11 +109,13 @@ mod tests {
     use super::Evaluation;
 
     #[test]
-    fn should_recognize_forced_mate() {
-        assert!(Evaluation::PlayerCheckmate(3).is_forced_mate());
-        assert!(Evaluation::OpponentCheckmate(3).is_forced_mate());
-        assert_eq!(Evaluation::Centipawns(100).is_forced_mate(), false);
-        assert_eq!(Evaluation::Centipawns(-100).is_forced_mate(), false);
+    fn should_recognize_game_over() {
+        assert!(Evaluation::PlayerCheckmate(3).is_game_over());
+        assert!(Evaluation::OpponentCheckmate(3).is_game_over());
+        assert!(Evaluation::Draw.is_game_over());
+        assert_eq!(Evaluation::Centipawns(100).is_game_over(), false);
+        assert_eq!(Evaluation::Centipawns(-100).is_game_over(), false);
+        assert_eq!(Evaluation::Centipawns(0).is_game_over(), false);
     }
 
     #[test]

@@ -48,7 +48,7 @@ pub fn final_heuristic(old_eval: Evaluation, board: &Board) -> Evaluation {
     let delta = if board.checkmate() {
         return Evaluation::OpponentCheckmate(0);
     } else if board.stalemate() {
-        return Evaluation::DRAW;
+        return Evaluation::Draw;
     } else {
         threat_value(board)
     };
