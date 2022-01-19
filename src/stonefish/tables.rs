@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use pleco::Board;
 
+use super::{evaluation::Evaluation, node::Node, types::Line};
+
 #[derive(Debug, Clone)]
 pub struct RepetitionTable(HashMap<u64, usize>);
 
@@ -63,3 +65,21 @@ impl RepetitionTable {
         *self.0.get(&board.zobrist()).unwrap_or(&0)
     }
 }
+
+pub struct HashTableEntry {
+    pub evaluation: Evaluation,
+    pub best_line: Line,
+    pub depth: usize,
+}
+
+impl HashTableEntry {
+    pub fn from_node(node: &Node) -> Self {
+        Self {
+            evaluation: node.evaluation,
+            best_line: node.best_line.clone(),
+            depth: node.depth,
+        }
+    }
+}
+
+pub type HashTable = HashMap<u64, HashTableEntry>;

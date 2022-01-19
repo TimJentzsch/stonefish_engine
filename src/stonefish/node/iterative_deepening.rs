@@ -9,7 +9,9 @@ use std::{
 
 use crate::{
     stonefish::{
-        abort_flags::AbortFlags, evaluation::Evaluation, tables::RepetitionTable, types::HashTable,
+        abort_flags::AbortFlags,
+        evaluation::Evaluation,
+        tables::{HashTable, RepetitionTable},
     },
     uci::AbortFlag,
 };

@@ -3,7 +3,8 @@ use pleco::{BitMove, Board};
 use super::{
     evaluation::Evaluation,
     heuristic::move_heuristic,
-    types::{Children, HashTable, HashTableEntry, Line},
+    tables::{HashTable, HashTableEntry},
+    types::{Children, Line},
 };
 
 mod info;
@@ -188,7 +189,7 @@ impl PartialEq for Node {
 mod tests {
     use pleco::Board;
 
-    use crate::stonefish::{evaluation::Evaluation, node::Node, types::HashTable};
+    use crate::stonefish::{evaluation::Evaluation, node::Node, tables::HashTable};
 
     #[test]
     fn should_expand_startpos() {

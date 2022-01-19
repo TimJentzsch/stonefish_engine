@@ -67,7 +67,7 @@ mod tests {
         evaluation::Evaluation,
         heuristic::{final_heuristic, initial_heuristic, move_heuristic},
         node::Node,
-        types::HashTable,
+        tables::HashTable,
     };
 
     #[test]
