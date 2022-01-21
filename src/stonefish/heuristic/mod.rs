@@ -93,7 +93,7 @@ mod tests {
         let fens = [
             "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
             // TODO: Fix bug with promotion capture
-            // "1rb4r/pkPp3p/1b1P3n/1Q6/N3Pp2/8/P1P3PP/7K w - - 1 1",
+            "1rb4r/pkPp3p/1b1P3n/1Q6/N3Pp2/8/P1P3PP/7K w - - 1 1",
             "4kb1r/p2n1ppp/4q3/4p1B1/4P3/1Q6/PPP2PPP/2KR4 w k - 1 1",
             "r1b2k1r/ppp1bppp/8/1B1Q4/5q2/2P5/PPP2PPP/R3R1K1 w - - 1 1",
             "r1b2k1r/ppp1bppp/8/1B1Q4/5q2/2P5/PPP2PPP/R3R1K1 w - - 1 1",
@@ -130,10 +130,27 @@ mod tests {
 
     #[test]
     fn should_properly_update_heuristic_for_move_sequences() {
-        let parameters = [(
-            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-            ["e2e3", "d7d5", "d1h5", "g8h6", "h5g5", "g7g6", "g5e5"],
-        )];
+        let parameters = [
+            (
+                "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+                vec!["e2e3", "d7d5", "d1h5", "g8h6", "h5g5", "g7g6", "g5e5"],
+            ),
+            (
+                // Promotion to queen
+                "8/1k4P1/8/8/8/8/6K1/8 w - - 0 1",
+                vec!["g7g8q"],
+            ),
+            (
+                // Promotion to rook
+                "8/1k4P1/8/8/8/8/6K1/8 w - - 0 1",
+                vec!["g7g8r"],
+            ),
+            (
+                // Promotion with capture
+                "5r2/1k4P1/8/8/8/8/6K1/8 w - - 0 1",
+                vec!["g7f8q"],
+            ),
+        ];
 
         for (fen, moves) in parameters {
             let mut cur_board = Board::from_fen(fen).unwrap();

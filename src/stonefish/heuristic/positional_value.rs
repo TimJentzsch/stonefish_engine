@@ -323,7 +323,7 @@ pub fn move_positional_value(old_board: &Board, mv: BitMove, new_board: &Board) 
         let old_king_eval = player_king_position(old_board, src_king_bb, player);
         let new_king_eval = player_king_position(new_board, dest_king_bb, player);
 
-        return new_king_eval + new_rook_eval - old_king_eval - old_rook_eval
+        return new_king_eval + new_rook_eval - old_king_eval - old_rook_eval;
     }
 
     let src_sq = mv.get_src();
@@ -336,10 +336,11 @@ pub fn move_positional_value(old_board: &Board, mv: BitMove, new_board: &Board) 
     let old_pos_eval = positional_piece_value(old_piece, old_board, src_sq.to_bb(), player);
     let new_pos_eval = positional_piece_value(new_piece, new_board, dest_sq.to_bb(), player);
 
-    // If the player is castling we also need to update the rook
+    println!("Old: {old_piece:?} ({old_pos_eval:?}) New: {new_piece:?} ({new_pos_eval:?})");
 
     // We also need to consider the change of capturing an opponent's piece
     let capture_eval = if mv.is_capture() {
+        println!("Capture");
         let capture_piece = old_board.piece_at_sq(dest_sq).type_of();
         positional_piece_value(
             capture_piece,
@@ -350,6 +351,7 @@ pub fn move_positional_value(old_board: &Board, mv: BitMove, new_board: &Board) 
     } else {
         0
     };
+    println!("Capture: {capture_eval}");
 
     new_pos_eval - old_pos_eval + capture_eval
 }
@@ -359,9 +361,9 @@ mod tests {
     use pleco::{BitBoard, Board, PieceType, Player, SQ};
 
     use crate::stonefish::heuristic::positional_value::{
-        initial_positional_value, player_king_position, player_knight_position,
-        player_rook_position, threat_value, BORDER_BB, CENTER_ONE_BB, CENTER_RING_BB,
-        CENTER_TWO_BB, CORNER_BB,
+        initial_positional_value, move_positional_value, player_king_position,
+        player_knight_position, player_rook_position, threat_value, BORDER_BB, CENTER_ONE_BB,
+        CENTER_RING_BB, CENTER_TWO_BB, CORNER_BB,
     };
 
     use super::player_pawn_position;
@@ -646,6 +648,113 @@ mod tests {
             let threat_value = threat_value(&board);
 
             assert_eq!(threat_value, expected, "{name}");
+        }
+    }
+
+    #[test]
+    fn should_properly_update_heuristic() {
+        let fens = [
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            // TODO: Fix bug with promotion capture
+            "1rb4r/pkPp3p/1b1P3n/1Q6/N3Pp2/8/P1P3PP/7K w - - 1 1",
+            "4kb1r/p2n1ppp/4q3/4p1B1/4P3/1Q6/PPP2PPP/2KR4 w k - 1 1",
+            "r1b2k1r/ppp1bppp/8/1B1Q4/5q2/2P5/PPP2PPP/R3R1K1 w - - 1 1",
+            "r1b2k1r/ppp1bppp/8/1B1Q4/5q2/2P5/PPP2PPP/R3R1K1 w - - 1 1",
+            "5rkr/pp2Rp2/1b1p1Pb1/3P2Q1/2n3P1/2p5/P4P2/4R1K1 w - - 1 1",
+            "1r1kr3/Nbppn1pp/1b6/8/6Q1/3B1P2/Pq3P1P/3RR1K1 w - - 1 1",
+            "5rk1/1p1q2bp/p2pN1p1/2pP2Bn/2P3P1/1P6/P4QKP/5R2 w - - 1 1",
+            "r1bq1rk1/p2pnpbp/2pQ2p1/4p3/2B1P3/2N1B3/PPP2PPP/R3K2R w KQ - 2 11",
+            // Castling white
+            "r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w - - 0 1",
+            // Castling black
+            "r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R b - - 0 1",
+        ];
+
+        for fen in fens {
+            let old_board = Board::from_fen(fen).unwrap();
+            let old_value = initial_positional_value(&old_board);
+            let moves = old_board.generate_moves();
+
+            for mv in moves {
+                let mut new_board = old_board.clone();
+                new_board.apply_move(mv);
+
+                let expected = initial_positional_value(&new_board);
+
+                let actual_delta = move_positional_value(&old_board, mv, &new_board);
+                let actual = -(old_value + actual_delta);
+
+                assert_eq!(
+                    actual,
+                    expected,
+                    "{fen} -> {}; -({old_value} + {actual_delta} != {expected}",
+                    new_board.last_move().unwrap().stringify(),
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn should_properly_update_heuristic_for_move_sequences() {
+        let parameters = [
+            // (
+            //     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            //     vec!["e2e3", "d7d5", "d1h5", "g8h6", "h5g5", "g7g6", "g5e5"],
+            // ),
+            // (
+            //     // Promotion to queen
+            //     "8/1k4P1/8/8/8/8/6K1/8 w - - 0 1",
+            //     vec!["g7g8q"],
+            // ),
+            // (
+            //     // Promotion to rook
+            //     "8/1k4P1/8/8/8/8/6K1/8 w - - 0 1",
+            //     vec!["g7g8r"],
+            // ),
+            // (
+            //     // Promotion with capture
+            //     "5r2/1k4P1/8/8/8/8/6K1/8 w - - 0 1",
+            //     vec!["g7f8q"],
+            // ),
+            // (
+            //     // Promotion with capture
+            //     "5r2/1k4P1/8/8/8/8/6K1/8 w - - 0 1",
+            //     vec!["g7f8q"],
+            // ),
+            // (
+            //     // Promotion with capture
+            //     "1rb4r/1kPp3p/3P3n/8/8/8/8/7K w - - 1 1",
+            //     vec!["c7b8n"],
+            // ),
+            // (
+            //     // Promotion with capture
+            //     "1rb4r/1kPp3p/3P3n/8/8/8/8/7K w - - 1 1",
+            //     vec!["c7b8r"],
+            // ),
+            (
+                "1r6/1kP5/1b6/1Q6/8/8/8/7K w - - 1 1",
+                vec!["c7b8r"],
+            ),
+            // (
+            //     "1rb4r/pkPp3p/1b1P3n/1Q6/N3Pp2/8/P1P3PP/7K w - - 1 1",
+            //     vec!["c7b8r"],
+            // ),
+        ];
+
+        for (fen, moves) in parameters {
+            let mut cur_board = Board::from_fen(fen).unwrap();
+            let mut cur_eval = initial_positional_value(&cur_board);
+
+            for uci_move in moves {
+                let mut new_board = cur_board.clone();
+                assert!(new_board.apply_uci_move(uci_move));
+                let mv = new_board.last_move().unwrap();
+                cur_eval = -(cur_eval + move_positional_value(&cur_board, mv, &new_board));
+                let fresh_eval = initial_positional_value(&new_board);
+
+                assert_eq!(cur_eval, fresh_eval, "{fen} after {uci_move}");
+                cur_board = new_board;
+            }
         }
     }
 }
