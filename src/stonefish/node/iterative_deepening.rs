@@ -7,7 +7,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use rayon::prelude::*;
+use rayon::{prelude::*, ThreadPoolBuilder};
 
 use crate::{
     stonefish::{
@@ -43,6 +43,7 @@ impl Node {
         max_time: Option<Duration>,
         repetition_table: RepetitionTable,
         stop_flag: AbortFlag,
+        max_thread_count: usize,
     ) -> Evaluation {
         let start = Instant::now();
         // When this flag is set to true, time has run out
@@ -62,34 +63,42 @@ impl Node {
             let mut node = self.clone();
             let children = node.reset().expand(&HashTable::new());
 
-            let results: Vec<_> = children
-                .par_iter()
-                .map(|child| {
-                    let mut child = child.clone();
+            let pool = ThreadPoolBuilder::new()
+                .num_threads(max_thread_count)
+                .thread_name(|idx| format!("Stonefish engine move {idx}"))
+                .build()
+                .expect("Failed to build thread pool");
 
-                    let mut hash_table = HashTable::new();
-                    let mut repetition_table = repetition_table.clone();
+            let results: Vec<_> = pool.install(|| {
+                children
+                    .par_iter()
+                    .map(|child| {
+                        let mut child = child.clone();
 
-                    let result = if repetition_table.insert_check_draw(&child.board) {
-                        repetition_table.remove(&self.board);
-                        child.evaluation = Evaluation::Draw;
+                        let mut hash_table = HashTable::new();
+                        let mut repetition_table = repetition_table.clone();
 
-                        Ok(Evaluation::Draw)
-                    } else {
-                        let abort_flags =
-                            AbortFlags::from_flags(stop_flag.clone(), time_flag.clone());
+                        let result = if repetition_table.insert_check_draw(&child.board) {
+                            repetition_table.remove(&self.board);
+                            child.evaluation = Evaluation::Draw;
 
-                        child.minimax(
-                            depth - 1,
-                            &mut hash_table,
-                            &mut repetition_table,
-                            abort_flags,
-                        )
-                    };
+                            Ok(Evaluation::Draw)
+                        } else {
+                            let abort_flags =
+                                AbortFlags::from_flags(stop_flag.clone(), time_flag.clone());
 
-                    (child, result)
-                })
-                .collect();
+                            child.minimax(
+                                depth - 1,
+                                &mut hash_table,
+                                &mut repetition_table,
+                                abort_flags,
+                            )
+                        };
+
+                        (child, result)
+                    })
+                    .collect()
+            });
 
             let mut updated_children = vec![];
             let mut abort = false;
@@ -141,6 +150,7 @@ mod tests {
             None,
             RepetitionTable::new(),
             Arc::new(AtomicBool::new(false)),
+            1,
         );
 
         assert_eq!(
@@ -216,6 +226,7 @@ mod tests {
                 None,
                 RepetitionTable::new(),
                 Arc::new(AtomicBool::new(false)),
+                1,
             );
 
             assert!(
@@ -252,6 +263,7 @@ mod tests {
                 None,
                 repetition_table,
                 Arc::new(AtomicBool::new(false)),
+                1,
             );
 
             // The bot should give a response
@@ -295,6 +307,7 @@ mod tests {
                 None,
                 repetition_table,
                 Arc::new(AtomicBool::new(false)),
+                1,
             );
 
             // The bot should give a response

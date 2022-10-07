@@ -24,6 +24,8 @@ pub struct Stonefish {
     board: Board,
     /// Table to track threefold repetion.
     repetition_table: RepetitionTable,
+    /// The maximum number of threads to use.
+    max_thread_count: usize,
 }
 
 impl Stonefish {
@@ -32,6 +34,7 @@ impl Stonefish {
         Stonefish {
             board: Board::start_pos(),
             repetition_table: RepetitionTable::new(),
+            max_thread_count: num_cpus::get(),
         }
     }
 
@@ -102,6 +105,12 @@ impl UciEngine for Stonefish {
             UciOption::new_with_default("Hash", UciOptionType::Spin, "32"),
             // We don't change behavior, but we wanna do analysis
             UciOption::new("UCI_AnalyseMode", UciOptionType::Check),
+            // Control the maximum number of threads
+            UciOption::new_with_default(
+                "Threads",
+                UciOptionType::Spin,
+                &num_cpus::get().to_string(),
+            ),
         ]
     }
 
@@ -167,6 +176,7 @@ impl UciEngine for Stonefish {
             max_time,
             self.repetition_table.clone(),
             stop_flag,
+            self.max_thread_count,
         );
         root.send_best_move();
     }
