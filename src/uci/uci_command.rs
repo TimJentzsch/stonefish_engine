@@ -1,4 +1,6 @@
-#[derive(Debug, PartialEq)]
+use std::str::SplitWhitespace;
+
+#[derive(Debug, Eq, PartialEq)]
 pub enum UciCommand {
     Uci,
     Debug(bool),
@@ -13,13 +15,13 @@ pub enum UciCommand {
     Unknown(String),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum UciPosition {
     Fen(String),
     Startpos,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct UciGoConfig {
     /// Restrict search to these moves only.
     pub search_moves: Option<Vec<String>>,
@@ -282,29 +284,19 @@ impl UciCommand {
 
 impl From<&str> for UciCommand {
     fn from(line: &str) -> Self {
-        let mut tokens = line.trim().split_whitespace();
+        let mut tokens = line.split_whitespace();
 
-        return if let Some(cmd_token) = tokens.next() {
+        if let Some(cmd_token) = tokens.next() {
+            let rest = &rest_str(&tokens);
+
             match cmd_token {
                 "uci" => UciCommand::Uci,
-                "debug" => {
-                    let debug_str = tokens.as_str();
-                    UciCommand::try_parse_debug(debug_str)
-                }
+                "debug" => UciCommand::try_parse_debug(rest),
                 "isready" => UciCommand::IsReady,
-                "setoption" => {
-                    let set_option_str = tokens.as_str();
-                    UciCommand::try_parse_set_option(set_option_str)
-                }
+                "setoption" => UciCommand::try_parse_set_option(rest),
                 "ucinewgame" => UciCommand::UciNewGame,
-                "position" => {
-                    let pos_str = tokens.as_str();
-                    UciCommand::try_parse_position(line, pos_str)
-                }
-                "go" => {
-                    let go_str = tokens.as_str();
-                    UciCommand::try_parse_go(go_str)
-                }
+                "position" => UciCommand::try_parse_position(line, rest),
+                "go" => UciCommand::try_parse_go(rest),
                 "stop" => UciCommand::Stop,
                 "ponderhit" => UciCommand::Ponderhit,
                 "quit" => UciCommand::Quit,
@@ -314,8 +306,17 @@ impl From<&str> for UciCommand {
         } else {
             // Unknown (empty) command
             UciCommand::Unknown(line.to_owned())
-        };
+        }
     }
+}
+
+/// Get the rest of the tokens as `&str`.
+///
+/// Temporary workaround until `str_split_whitespace_as_str` has been stabilized.
+/// See <https://github.com/rust-lang/rust/issues/77998>.
+fn rest_str(tokens: &SplitWhitespace) -> String {
+    let token_vec: Vec<_> = tokens.clone().into_iter().collect();
+    token_vec.join(" ")
 }
 
 #[cfg(test)]

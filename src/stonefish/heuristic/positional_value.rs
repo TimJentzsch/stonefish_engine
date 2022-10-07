@@ -1,6 +1,10 @@
 //! Evaluation of the positional value.
 //!
 //! Values inspired by https://www.chessprogramming.org/Simplified_Evaluation_Function
+
+// The groups represent chess board rows, so they are groups of 8.
+#![allow(clippy::unusual_byte_groupings)]
+
 use pleco::{BitBoard, BitMove, Board, PieceType, Player, SQ};
 
 use super::material_value::get_piece_value;
@@ -323,7 +327,7 @@ pub fn move_positional_value(old_board: &Board, mv: BitMove, new_board: &Board) 
         let old_king_eval = player_king_position(old_board, src_king_bb, player);
         let new_king_eval = player_king_position(new_board, dest_king_bb, player);
 
-        return new_king_eval + new_rook_eval - old_king_eval - old_rook_eval
+        return new_king_eval + new_rook_eval - old_king_eval - old_rook_eval;
     }
 
     let src_sq = mv.get_src();
