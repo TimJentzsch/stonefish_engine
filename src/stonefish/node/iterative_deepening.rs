@@ -1,11 +1,13 @@
 use std::{
     sync::{
         atomic::{AtomicBool, Ordering},
-        mpsc, Arc,
+        Arc,
     },
     thread,
     time::{Duration, Instant},
 };
+
+use rayon::prelude::*;
 
 use crate::{
     stonefish::{
@@ -57,47 +59,43 @@ impl Node {
                 }
             }
 
-            let (tx, rx) = mpsc::channel();
-
             let mut node = self.clone();
             let children = node.reset().expand(&HashTable::new());
 
-            // Search every move in a separate thread
-            for child in &children {
-                let tx = tx.clone();
-                let mut child = child.clone();
+            let results: Vec<_> = children
+                .par_iter()
+                .map(|child| {
+                    let mut child = child.clone();
 
-                let mut hash_table = HashTable::new();
-                let mut repetition_table = repetition_table.clone();
-                if repetition_table.insert_check_draw(&child.board) {
-                    repetition_table.remove(&self.board);
-                    child.evaluation = Evaluation::Draw;
-                    tx.send((child, Ok(Evaluation::Draw))).unwrap();
-                    continue;
-                }
+                    let mut hash_table = HashTable::new();
+                    let mut repetition_table = repetition_table.clone();
 
-                let abort_flags = AbortFlags::from_flags(stop_flag.clone(), time_flag.clone());
+                    let result = if repetition_table.insert_check_draw(&child.board) {
+                        repetition_table.remove(&self.board);
+                        child.evaluation = Evaluation::Draw;
 
-                thread::Builder::new()
-                    .name(child.board.last_move().unwrap().stringify())
-                    .spawn(move || {
-                        let result = child.minimax(
+                        Ok(Evaluation::Draw)
+                    } else {
+                        let abort_flags =
+                            AbortFlags::from_flags(stop_flag.clone(), time_flag.clone());
+
+                        child.minimax(
                             depth - 1,
                             &mut hash_table,
                             &mut repetition_table,
                             abort_flags,
-                        );
-                        tx.send((child, result)).unwrap();
-                    })
-                    .unwrap();
-            }
+                        )
+                    };
+
+                    (child, result)
+                })
+                .collect();
 
             let mut updated_children = vec![];
             let mut abort = false;
 
             // Aggregate the results
-            for _ in &children {
-                let (child, result) = rx.recv().unwrap();
+            for (child, result) in results {
                 if result.is_err() {
                     abort = true;
                 }
