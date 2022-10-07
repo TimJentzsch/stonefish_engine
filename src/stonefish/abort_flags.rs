@@ -6,7 +6,7 @@ use std::sync::{
 use crate::uci::AbortFlag;
 
 /// The search has been aborted.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct SearchAborted;
 
 #[derive(Debug, Clone)]

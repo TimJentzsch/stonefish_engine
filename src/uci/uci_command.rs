@@ -1,6 +1,6 @@
 use std::str::SplitWhitespace;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum UciCommand {
     Uci,
     Debug(bool),
@@ -15,13 +15,13 @@ pub enum UciCommand {
     Unknown(String),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum UciPosition {
     Fen(String),
     Startpos,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct UciGoConfig {
     /// Restrict search to these moves only.
     pub search_moves: Option<Vec<String>>,
@@ -284,7 +284,7 @@ impl UciCommand {
 
 impl From<&str> for UciCommand {
     fn from(line: &str) -> Self {
-        let mut tokens = line.trim().split_whitespace();
+        let mut tokens = line.split_whitespace();
 
         if let Some(cmd_token) = tokens.next() {
             let rest = &rest_str(&tokens);
