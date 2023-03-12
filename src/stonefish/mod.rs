@@ -2,8 +2,8 @@ mod abort_flags;
 mod evaluation;
 mod heuristic;
 mod node;
-mod types;
 mod time_management;
+mod types;
 
 use pleco::Board;
 
@@ -16,7 +16,7 @@ use crate::{
     },
 };
 
-use self::{types::RepetitionTable, time_management::get_max_time};
+use self::{time_management::get_max_time, types::RepetitionTable};
 
 #[derive(Debug, Clone)]
 pub struct Stonefish {
@@ -130,7 +130,7 @@ impl UciEngine for Stonefish {
         // if parts of the moves are invalid
         let mut repetition_table = self.repetition_table.clone();
 
-        if moves.len() == 0 {
+        if moves.is_empty() {
             // No move history was provided, try to reconstruct it
             Self::reconstruct_move_history(&self.board, &new_board, &mut repetition_table);
         } else {

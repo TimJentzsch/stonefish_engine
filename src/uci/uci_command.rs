@@ -282,7 +282,7 @@ impl UciCommand {
 
 impl From<&str> for UciCommand {
     fn from(line: &str) -> Self {
-        let mut tokens = line.trim().split_whitespace();
+        let mut tokens = line.split_whitespace();
 
         return if let Some(cmd_token) = tokens.next() {
             match cmd_token {
