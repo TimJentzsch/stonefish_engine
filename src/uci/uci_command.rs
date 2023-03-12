@@ -288,21 +288,21 @@ impl From<&str> for UciCommand {
             match cmd_token {
                 "uci" => UciCommand::Uci,
                 "debug" => {
-                    let debug_str = tokens.as_str();
+                    let debug_str = tokens.remainder().unwrap_or("");
                     UciCommand::try_parse_debug(debug_str)
                 }
                 "isready" => UciCommand::IsReady,
                 "setoption" => {
-                    let set_option_str = tokens.as_str();
+                    let set_option_str = tokens.remainder().unwrap_or("");
                     UciCommand::try_parse_set_option(set_option_str)
                 }
                 "ucinewgame" => UciCommand::UciNewGame,
                 "position" => {
-                    let pos_str = tokens.as_str();
+                    let pos_str = tokens.remainder().unwrap_or("");
                     UciCommand::try_parse_position(line, pos_str)
                 }
                 "go" => {
-                    let go_str = tokens.as_str();
+                    let go_str = tokens.remainder().unwrap_or("");
                     UciCommand::try_parse_go(go_str)
                 }
                 "stop" => UciCommand::Stop,
