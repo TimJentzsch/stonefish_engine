@@ -87,6 +87,7 @@ impl Node {
                             &mut repetition_table,
                             abort_flags,
                         );
+                        repetition_table.remove(&child.board);
                         tx.send((child, result)).unwrap();
                     })
                     .unwrap();

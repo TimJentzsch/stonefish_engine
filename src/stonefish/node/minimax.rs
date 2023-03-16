@@ -23,14 +23,12 @@ impl Node {
     ) -> Result<Evaluation, SearchAborted> {
         // Check for repetition
         if repetition_table.insert_check_draw(&self.board) {
-            repetition_table.remove(&self.board);
             return Ok(Evaluation::Draw);
         }
 
         if depth == 0 {
             // Update the evaluation with a more expensive analysis
             self.evaluation = final_heuristic(self.evaluation, &self.board);
-            repetition_table.remove(&self.board);
             return Ok(self.evaluation);
         }
 
@@ -64,7 +62,6 @@ impl Node {
         if children.is_empty() {
             // Update the evaluation with a more expensive analysis
             self.evaluation = final_heuristic(self.evaluation, &self.board);
-            repetition_table.remove(&self.board);
             return Ok(self.evaluation);
         }
 
@@ -81,10 +78,12 @@ impl Node {
                     abort_flags.clone(),
                 );
 
+            // The child inserted their board in the repetition table, remove it again
+            repetition_table.remove(&child.board);
+
             // Check if the search has been aborted
             if let Err(err) = child_eval {
                 self.update_attributes(&children);
-                repetition_table.remove(&self.board);
                 return Err(err);
             }
 
@@ -104,7 +103,6 @@ impl Node {
         self.update_attributes(&children);
         self.evaluation = cur_evaluation;
         hash_table.insert(self.board.zobrist(), HashTableEntry::from_node(self));
-        repetition_table.remove(&self.board);
         Ok(self.evaluation)
     }
 
