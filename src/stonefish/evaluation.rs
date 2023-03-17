@@ -58,7 +58,7 @@ impl Ord for Evaluation {
                 Evaluation::Centipawns(mat_b) => mat_a.cmp(mat_b),
                 Evaluation::PlayerCheckmate(_) => Ordering::Less,
                 Evaluation::OpponentCheckmate(_) => Ordering::Greater,
-                Evaluation::Draw => 0.cmp(mat_a),
+                Evaluation::Draw => mat_a.cmp(&0),
             },
             Evaluation::PlayerCheckmate(moves_a) => {
                 match other {
@@ -76,14 +76,12 @@ impl Ord for Evaluation {
                     _ => Ordering::Less,
                 }
             }
-            Evaluation::Draw => {
-                match other {
-                    Evaluation::Centipawns(mat_b) => 0.cmp(mat_b),
-                    Evaluation::PlayerCheckmate(_) => Ordering::Less,
-                    Evaluation::OpponentCheckmate(_) => Ordering::Greater,
-                    Evaluation::Draw => Ordering::Equal,
-                }
-            }
+            Evaluation::Draw => match other {
+                Evaluation::Centipawns(mat_b) => 0.cmp(mat_b),
+                Evaluation::PlayerCheckmate(_) => Ordering::Less,
+                Evaluation::OpponentCheckmate(_) => Ordering::Greater,
+                Evaluation::Draw => Ordering::Equal,
+            },
         }
     }
 }
@@ -210,5 +208,41 @@ mod tests {
 
         assert_eq!(eval.cmp(&checkmate), Ordering::Greater);
         assert_eq!(checkmate.cmp(&eval), Ordering::Less);
+    }
+
+    #[test]
+    fn should_compare_draw_with_player_checkmate() {
+        let draw = Evaluation::Draw;
+        let player_checkmate = Evaluation::PlayerCheckmate(3);
+
+        assert_eq!(draw.cmp(&player_checkmate), Ordering::Less);
+        assert_eq!(player_checkmate.cmp(&draw), Ordering::Greater);
+    }
+
+    #[test]
+    fn should_compare_draw_with_opponent_checkmate() {
+        let draw = Evaluation::Draw;
+        let opponent_checkmate = Evaluation::OpponentCheckmate(3);
+
+        assert_eq!(draw.cmp(&opponent_checkmate), Ordering::Greater);
+        assert_eq!(opponent_checkmate.cmp(&draw), Ordering::Less);
+    }
+
+    #[test]
+    fn should_compare_draw_with_bad_eval() {
+        let draw = Evaluation::Draw;
+        let bad_eval = Evaluation::Centipawns(-100);
+
+        assert_eq!(draw.cmp(&bad_eval), Ordering::Greater);
+        assert_eq!(bad_eval.cmp(&draw), Ordering::Less);
+    }
+
+    #[test]
+    fn should_compare_draw_with_good_eval() {
+        let draw = Evaluation::Draw;
+        let good_eval = Evaluation::Centipawns(100);
+
+        assert_eq!(draw.cmp(&good_eval), Ordering::Less);
+        assert_eq!(good_eval.cmp(&draw), Ordering::Greater);
     }
 }
